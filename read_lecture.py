@@ -3,9 +3,9 @@
 import json
 import copy
 
-the_path = 'C:/Goren/CuriosityLab/Research/robotator/system/HCI/40bd7260-5b66-11e9-9bb6-cf99491464ce/'
-the_file = '40bd7260-5b66-11e9-9bb6-cf99491464ce.json'
-lecture = json.load(open(the_path + the_file, encoding='utf-8'))
+the_path = 'lecture_files/'
+the_file = '6fe89170-73dd-11e9-a32f-5b02d2874b9e.json'
+lecture = json.load(open(the_path + the_file))
 # convert lecture json to activity json
 
 
@@ -14,20 +14,22 @@ def print_part(part_):
         print(k, ':', part_[k])
     if 'end' in part_:
         print(part_['end'])
-    print()
+    print
 
 
 def generate_text_for_speech(lecture_):
     for s, section_ in enumerate(lecture['sections']):
-        f = open('speech_files/section_%s.txt' % section_['name'], 'w+', encoding='utf-8')
-        f.write(section_['notes'])
-        f.close()
+        if section_['notes']:
+            f = open('speech_files/section_%s.txt' % section_['name'], 'w+')
+            f.write(section_['notes'])
+            f.close()
 
 generate_text_for_speech(lecture)
 
 # TODO: go over sections, and create the json flow
 base_robot_action = {
     'tag': 'tag',
+    'target': 'robot',
     'action': 'play_audio_file',
     'parameters': 'parameters',
     'next': 'next',
@@ -36,6 +38,7 @@ base_robot_action = {
 
 base_robot_sleep = {
     'tag': 'tag',
+    'target': 'robot',
     'action': 'sleep',
     'seconds': 90,
     'done': {
@@ -48,6 +51,7 @@ base_robot_sleep = {
 
 base_robot_resolution = {
     'tag': 'tag',
+    'target': 'robot',
     'action': 'resolution',
     'seconds': 60,
     'done': {
@@ -60,19 +64,29 @@ base_robot_resolution = {
 
 base_tablet_action = {
     'tag': 'tag',
+    'target': 'tablet',
     'action': 'show_screen',
     'screen_name': 'screen_name',
     'activity': 'activity',
     'activity_type': 'activity_type',
+    'duration': 0,
+    'response': 0,
     'tablets': [1,2,3,4,5],
     'next': 'next'
 }
 
 # study_flow
 
-study_flow = {}
-# print(lecture)
+study_flow = [{
+      "tag": "start", "target": "robot",
+      "action":"wake_up",
+      "next": 'section_%s_show_screen' % lecture['sections'][1]['name']
+    }
+]
+print(lecture)
 for s, section in enumerate(lecture['sections']):
+    if s == 0:
+        continue
     # Every section is composed of:
     # - a new tablet screen
     # - robot says something
@@ -87,15 +101,18 @@ for s, section in enumerate(lecture['sections']):
     part['screen_name'] = section['uuid']
     if 'questionType' in value:
         part['activity_type'] = value['questionType']
+        part['duration'] = 0 # TODO
+        part['response'] = 0 # TODO
 
     # robot speech is only if there are notes
-    if len(section['notes']) > 5:
-        part['next'] = 'section_%s_robot_instruction' % section['name']
-        parts.append(copy.copy(part))
+    if section['notes']:
+        if len(section['notes']) > 5:
+            part['next'] = 'section_%s_robot_instruction' % section['name']
+            parts.append(copy.copy(part))
 
-        part = copy.copy(base_robot_action)
-        part['tag'] = parts[-1]['next']
-        part['parameters'] = 'section_%s' % section['name']
+            part = copy.copy(base_robot_action)
+            part['tag'] = parts[-1]['next']
+            part['parameters'] = 'section_%s' % section['name']
 
     if section['key'] not in ['image']:
         part['next'] = 'section_%s_robot_sleep' % section['name']
@@ -163,7 +180,8 @@ for s, section in enumerate(lecture['sections']):
     parts.append(copy.copy(part))
 
 
-
     for p in parts:
         print_part(p)
+        study_flow.append(p)
 
+    json.dump(study_flow, open('flow_files/%s.json' % lecture['name'], 'w+'))

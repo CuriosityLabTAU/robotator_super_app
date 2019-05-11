@@ -66,12 +66,18 @@ class ManagerNode():
         self.waiting = False
         self.waiting_timer = False
         self.waiting_robot = False
+
+        self.the_lecture = ''
+
+
         i=1
         while i <= self.number_of_tablets:
             self.tablets_audience_agree[i]= None
             i += 1
 
         print(self.tablets_audience_agree)
+
+        self.tablets = {}
 
         self.robot_end_signal = {}
         self.tablets_done = {}
@@ -111,7 +117,7 @@ class ManagerNode():
 
     def run_generic_script(self):
         print("run_study")
-        data_file = open(the_lecture_flow_json_file)
+        data_file = open('flow_files/%s.json' % self.session)
         study_sequence = json.load(data_file)
         # self.poses_conditions = logics_json['conditions']
 
@@ -128,10 +134,14 @@ class ManagerNode():
             if "tablets" in action:
                 for tablet_id in action['tablets']:
                     try:
-                        client_ip = self.tablets_ips[str(tablet_id)]
+                        client_ip = self.tablets_ips[str(tablet_id)] #TODO: check
                         message = action
                         message['client_ip'] = client_ip
                         self.tablet_publisher.publish(json.dumps(message))
+
+                        # clear the previous answers
+                        # important for collecting the answers that are given
+                        self.tablets_mark = {}
                     except:
                         print('not enough tablets')
             next_action = self.actions[action['next']]
@@ -306,12 +316,13 @@ class ManagerNode():
                                       'group id',str(parameters['group_id'])]}
         self.robot_publisher.publish(json.dumps(nao_message))
         if (len(self.tablets) >= self.number_of_tablets):
-            print("two tablets are registered")
-            for key,value in self.tablets_ips.viewitems():
-                print ("key, value", key, value)
-                client_ip = value
-                message = {'action':'registration_complete','client_ip':client_ip}
-                self.tablet_publisher.publish(json.dumps(message))
+            # TODO: Check, but do not need in current scenario
+            # print("two tablets are registered")
+            # for key,value in self.tablets_ips.viewitems():
+            #     print ("key, value", key, value)
+            #     client_ip = value
+            #     message = {'action':'registration_complete','client_ip':client_ip}
+            #     self.tablet_publisher.publish(json.dumps(message))
             #time.sleep(2)
             self.run_study_timer = Timer(5.0, self.run_generic_script())
         print("finish register_tablet")
@@ -347,8 +358,24 @@ class ManagerNode():
         if (action == 'register_tablet'):
             self.register_tablet(data_json['parameters'],
                                  data_json['client_ip'])
-            {'action': 'play_audio_file', 'parameters': ['/home/nao/naoqi/sounds/dyslexia/s_w15_m7.wav']}
-        elif (action == 'audience_done'):
+            # {'action': 'play_audio_file', 'parameters': ['/home/nao/naoqi/sounds/dyslexia/s_w15_m7.wav']}
+        elif action == 'participant_done':
+            client_ip = data_json['client_ip']
+            tablet_id = self.tablets_ids[client_ip]
+            self.count_done = 0
+            self.tablets_done[tablet_id] = True
+            self.tablets_mark[tablet_id] = data_json['answer']
+            for value in self.tablets_done.values():
+                if value == True:
+                    self.count_done += 1
+            if (self.count_done == self.number_of_tablets_done):
+                try:
+                    self.sleep_timer.cancel()
+                    print("self.sleep_timer.cancel()")
+                except:
+                    print("failed self.sleep_timer_cancel")
+                self.count_done = 0
+                self.run_study_action(self.actions[self.robot_end_signal['done']])
             print("audience_done")
             #self.audience_done(data_json['parameters']['tablet_id'], data_json['parameters']['subject_id'],
             #                   data_json['client_ip'])
@@ -362,6 +389,7 @@ class ManagerNode():
     def callback_sensor(self, data):
         print("start manager callback_sensor", data.data)
 
+    # TODO: probably don't need at all
     def callback_log(self, data):
         # print('----- log -----')
         # print('----- log -----', data)
@@ -518,10 +546,6 @@ class ManagerNode():
         for i, s in enumerate(sorted_sensor_speak):
             rank_sensor_speak_[s] = i
         return rank_sensor_speak_, most_unspoken_
-
-
-
-
 
     def the_end(self):
         action = {"action": "rest"}

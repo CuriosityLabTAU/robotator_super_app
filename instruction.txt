@@ -1,0 +1,26 @@
+*** Initial Setup
+- Connect computer to TPLINK
+- Get computer ip
+- Connect tablets to TPLINK
+
+- Run SessionApp
+- Insert "register" into user name
+- Insert computer's IP to all tablets (first time, it remembers later)
+- Exit SessionApp
+
+** For each group
+- run ManagerNode (waiting for register_tablet)
+- run SessionApp
+--- init --> present all lectures/sessions
+
+- In SessionApp
+--- Enter "group_id, user_id" in user_name (IP is already inserted)
+--- Press OK
+--- Select current session
+--- A "wait" screen appears
+
+- run ServerNode
+--- get connected tablets
+--- send register_tablet
+
+---> interaction begins
