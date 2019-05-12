@@ -112,7 +112,7 @@ for s, section in enumerate(lecture['sections']):
 
             part = copy.copy(base_robot_action)
             part['tag'] = parts[-1]['next']
-            part['parameters'] = 'section_%s' % section['name']
+            part['parameters'] = ['section_%s' % section['name']]
 
     if section['key'] not in ['image']:
         part['next'] = 'section_%s_robot_sleep' % section['name']
@@ -142,7 +142,7 @@ for s, section in enumerate(lecture['sections']):
                 # reminder
                 part = copy.copy(base_robot_action)
                 part['tag'] = parts[-1]['end']['timeout']
-                part['parameters'] = '30_seconds_left'
+                part['parameters'] = ['30_seconds_left']
                 part['next'] = 'section_%s_robot_sleep_30' % section['name']
                 parts.append(copy.copy(part))
 

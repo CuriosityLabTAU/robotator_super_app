@@ -11,9 +11,10 @@ import copy
 robot_path = '/home/nao/naoqi/sounds/HCI/'
 the_lecture_flow_json_file = 'flow_files/"robotator_study.json"'
 
+
 class ManagerNode():
 
-    number_of_tablets = 2
+    number_of_tablets = 1
     tablets = {}    #in the form of {tablet_id_1:{"subject_id":subject_id, "tablet_ip";tablet_ip}
                                     #,tablet_id_2:{"subject_id":subject_id, "tablet_ip";tablet_ip}
 
@@ -67,7 +68,7 @@ class ManagerNode():
         self.waiting_timer = False
         self.waiting_robot = False
 
-        self.the_lecture = ''
+        self.session = 'lecture_1'
 
 
         i=1
@@ -129,7 +130,7 @@ class ManagerNode():
         self.run_study_action(self.actions['start'])
 
     def run_study_action(self, action):
-        print(action)
+        print(action['tag'], action)
         if action['target'] == 'tablet':
             if "tablets" in action:
                 for tablet_id in action['tablets']:
@@ -302,14 +303,13 @@ class ManagerNode():
             print('WRONG CONDITION')
             return
 
-        print("register_tablet", type(parameters['tablet_id']),client_ip)
-        print(self.tablets)
         self.tablets[parameters['tablet_id']] = {'subject_id': parameters['group_id'], 'tablet_ip':client_ip}
         self.tablets_subjects_ids[parameters['tablet_id']] = parameters['group_id']
         self.tablets_ips[parameters['tablet_id']] = client_ip
         self.tablets_ids[client_ip] = parameters['tablet_id']
         self.tablets_audience_done[parameters['tablet_id']] = False
-        self.session = parameters['session']
+        if parameters['session']:
+            self.session = parameters['session']
 
         nao_message = {'action': 'say_text_to_speech', 'client_ip':client_ip,
                        'parameters': ['register tablet', 'tablet_id',str(parameters['tablet_id']),
