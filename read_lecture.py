@@ -113,6 +113,10 @@ for s, section in enumerate(lecture['sections']):
             part = copy.copy(base_robot_action)
             part['tag'] = parts[-1]['next']
             part['parameters'] = ['section_%s' % section['name']]
+    if s < len(lecture['sections']) - 1:
+        the_next_part = 'section_%s_show_screen' % lecture['sections'][s + 1]['name']
+    else:
+        the_next_part = 'lecture_%s' % lecture['name']
 
     if section['key'] not in ['image']:
         part['next'] = 'section_%s_robot_sleep' % section['name']
@@ -163,22 +167,11 @@ for s, section in enumerate(lecture['sections']):
         part = copy.copy(base_robot_resolution)
         part['tag'] = 'section_%s_robot_resolution' % section['name']
         part['end'] = {
-            'timeout': 'section_%s_robot_end' % section['name'],
-            'done': 'section_%s_robot_end' % section['name']
+            'timeout': the_next_part,
+            'done': the_next_part
         }
-        part['next'] = 'section_%s_robot_end' % section['name']
-        parts.append(copy.copy(part))
-
-        # end of part
-        part['tag'] = 'section_%s_robot_end' % section['name']
-        part['parameters'] = 'section_%s_robot_end' % section['name']
-    if s < len(lecture['sections']) - 1:
-        the_next_part = 'section_%s_show_screen' % lecture['sections'][s + 1]['name']
-    else:
-        the_next_part = 'lecture_%s' % lecture['name']
     part['next'] = the_next_part
     parts.append(copy.copy(part))
-
 
     for p in parts:
         print_part(p)

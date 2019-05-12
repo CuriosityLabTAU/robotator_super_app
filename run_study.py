@@ -2,7 +2,7 @@ import os
 import threading
 import time
 import sys
-import requests
+import subprocess
 
 
 def intro(group_id=0, nao_ip='192.168.0.101'):
@@ -16,6 +16,10 @@ def start_working(group_id, nao_ip):
     def worker1():
         os.system('python ~/PycharmProjects/twisted_server_ros_2_0/scripts/nao_ros_listener.py ' + nao_ip)
         # os.system('python ~/pycharm/curious_game/nao_ros.py ' + nao_ip)
+        return
+
+    def worker2():
+        os.system('~/PycharmProjects/dualfisheye-to-affectiva/run.sh')
         return
 
     def worker6():
@@ -34,6 +38,10 @@ def start_working(group_id, nao_ip):
     t1 = threading.Thread(target=worker1)
     t1.start()
     threading._sleep(2.5)
+
+    # t2 = threading.Thread(target=worker2)
+    # t2.start()
+    # threading._sleep(2.5)
 
     t10 = threading.Thread(target=worker10)
     t10.start()

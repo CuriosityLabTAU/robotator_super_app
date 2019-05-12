@@ -45,7 +45,7 @@ class ManagerNode():
     tablets_mark = {}
     tablets_continue = {}
 
-    sensor_speak = {}
+
 
     def __init__(self):
         print("init run_manager")
@@ -59,17 +59,22 @@ class ManagerNode():
         # msg structure: action, 'client_ip'
         self.tablet_publisher = rospy.Publisher('to_tablet', String, queue_size=10)
 
+        self.sensor_publisher = rospy.Publisher("/send_msg", String, queue_size=1)
+
+        self.log_publisher = rospy.Publisher('log', String, queue_size=10)
+
         rospy.init_node('manager_node') #init a listener:
         rospy.Subscriber('nao_state', String, self.callback_nao_state)
         rospy.Subscriber('tablet_to_manager', String, self.callback_to_manager) # TODO: this is the main function to change
-        rospy.Subscriber('sensor_data', String, self.callback_sensor)
-        rospy.Subscriber('log', String, self.callback_log)
+        rospy.Subscriber('conc_speaker', String, self.callback_sensor)
+        rospy.Subscriber('send_data', String, self.callback_engage)
+        rospy.Subscriber('send_speaker_data', String, self.callback_speak)
+        # rospy.Subscriber('log', String, self.callback_log)
         self.waiting = False
         self.waiting_timer = False
         self.waiting_robot = False
 
         self.session = 'lecture_1'
-
 
         i=1
         while i <= self.number_of_tablets:
@@ -86,6 +91,17 @@ class ManagerNode():
         self.tablets_agree = {}
         self.tablets_mark = {}
         self.tablets_continue = {}
+
+        self.tablet_calibration = json.load(open('calibration.txt'))
+
+        # sensor variables
+        self.sensor_speak = {}
+        self.engagement = {}
+        self.current_speaker = None
+
+        # robot behavior management variables
+        self.is_sleeping = False
+
 
         # the flow variables
         self.actions = None
@@ -197,6 +213,7 @@ class ManagerNode():
         self.run_study_action(next_action)
 
     def robot_play_audio_file(self, action):
+        self.is_sleeping = False
         # go over parameters and add robot_path
         for i, p in enumerate(action['parameters']):
             if 'wait' not in p:
@@ -213,6 +230,7 @@ class ManagerNode():
             pass
 
     def robot_sleep(self, action):
+        self.is_sleeping = True
         print("start_timer")
         # either go on timeout
         self.sleep_timer = Timer(float(action["seconds"]), self.run_study_action,
@@ -224,22 +242,45 @@ class ManagerNode():
         for k, v in action["end"].items():
             self.robot_end_signal[k] = v
         # TODO: look at person speaks + person least engaged
+        least_engaged = sorted(self.engagement.items(), key=lambda kv: kv[1])[0]
+        if least_engaged[1] < 30.0: # not engaged
+            self.robot_publisher.publish(json.dumps({
+                "action": 'run_behavior',
+                "parameters": 'engage_%d' % least_engaged[0]
+            }))
+            time.sleep(5)
+
+        while self.is_sleeping:
+            self.robot_publisher.publish(json.dumps({
+                "action": 'run_behavior',
+                "parameters": 'engage_%d' % self.current_speaker
+            }))
+            time.sleep(1)
 
     def robot_resolution(self, action):
+        self.is_sleeping = False
         # first, aggregate data fron sensor and tablets
         # do group-dynamics logic
         # goal: find out whom to address
 
         # rule: find disagreeing tablets
         pairs = self.find_disagree()
+        self.log_publisher.publish(json.dumps({
+            'log': 'disagree_pairs',
+            'data': pairs
+        }))
 
         # rule: find most unspoken people
         unspeaking_rank, most_unspoken = self.find_rank()
+        self.log_publisher.publish(json.dumps({
+            'log': 'unspeaking',
+            'data': unspeaking_rank
+        }))
 
         if len(pairs) > 0:
             # rule: find pair who spoke least
             best_pair = pairs[0]
-            best_unspoken = 10 # more than twice the number of pariticipants
+            best_unspoken = 10 # more than twice the number of participants
             for p in pairs:
                 unspoken = unspeaking_rank[p[0]] + unspeaking_rank[p[1]]
                 if unspoken < best_unspoken:
@@ -258,11 +299,16 @@ class ManagerNode():
         while not self.robot_end_signal[action['parameters'][0]]:
             pass
 
+        # reset the counters
+        self.sensor_publisher.publish("C")
+        time.sleep(0.1)
+        self.sensor_publisher.publish("R")
+
         # sleep
         self.robot_sleep(action)
 
-
     def run_robot_behavior(self, nao_message):
+        self.is_sleeping = False
         self.robot_publisher.publish(json.dumps(nao_message))
         self.waiting = True
         self.waiting_robot = True
@@ -350,6 +396,8 @@ class ManagerNode():
             # self.tablet_publisher.publish(message)
             # self.nao.parse_message(message)
 
+
+
     # TODO: main function to change
     def callback_to_manager(self, data):
         print("start manager callback_to_manager", data.data)
@@ -386,147 +434,181 @@ class ManagerNode():
             self.robot_publisher.publish(data.data)
         print ("finish manager callback_to_manager")
 
+    def pos_to_tablet(self, speaker_info):
+        # convert the position from the directional microphone, to tablet id, via the calibration file
+        tablet_info = {}
+        for info in speaker_info:
+            dist = 1000000
+            best_fit = None
+            for tab_id, tab_pos in self.tablet_calibration.items():
+                if abs(tab_pos - info['pos']) < dist:
+                    dist = abs(tab_pos - info['pos'])
+                    best_fit = int(tab_id)
+            tablet_info[best_fit] = info['count']
+        return tablet_info
+
     def callback_sensor(self, data):
-        print("start manager callback_sensor", data.data)
+        # print("start manager callback_sensor", data.data)
+        # parsing the message
+        speakers = str(data.data)[1:-1].split(',')[1:]
+        speaker_data = [speaker[2:-1].split('_') for speaker in speakers]
+        speaker_info = []
+        for d in speaker_data:
+            if len(d) == 2:
+                speaker_info.append({'pos': int(d[0]), 'count': int(d[1])})
+        self.sensor_speak = self.pos_to_tablet(speaker_info)
+
+    def callback_engage(self, data):
+        subject_data = str(data.data).split(' ')
+        engage_data = float([d.split(':')[1] for d in subject_data if 'Engagement' in d][0])
+        if engage_data != 0.0:
+            pos_data = float([d.split(':')[1] for d in subject_data if 'Location' in d][0])
+            tablet_engage = self.pos_to_tablet([{'pos': pos_data, 'count': engage_data}])
+            self.engagement[tablet_engage.keys()[0]] = tablet_engage.values()[0]
+
+    def callback_speak(self, data):
+        subject_data = json.loads(str(data.data))
+        self.current_speaker = self.pos_to_tablet([{'pos': subject_data['x'], 'count': 0}]).keys()[0]
 
     # TODO: probably don't need at all
-    def callback_log(self, data):
-        # print('----- log -----')
-        # print('----- log -----', data)
-        log = json.loads(data.data)
-        # print(log)
-
-        if 'btn_done' in log['obj'] and log['action'] == 'press':
-            client_ip = log['client_ip']
-            tablet_id = self.tablets_ids[client_ip]
-            subject_id = self.tablets_subjects_ids[tablet_id]
-            self.count_done = 0
-            self.tablets_done[tablet_id] = True
-            for value in self.tablets_done.values():
-                if value == True:
-                    self.count_done += 1
-            if (self.count_done == self.number_of_tablets_done):
-                try:
-                    self.sleep_timer.cancel()
-                    print("self.sleep_timer.cancel()")
-                except:
-                    print("failed self.sleep_timer_cancel")
-                self.count_done = 0
-                self.run_study_action(self.actions[self.robot_end_signal['done']])
-
-        if 'agree' in log['obj'] and log['action'] == 'press':
-            client_ip = log['client_ip']
-            tablet_id = self.tablets_ids[client_ip]
-            subject_id = self.tablets_subjects_ids[tablet_id]
-            self.tablets_agree[tablet_id] = not 'disagree' in log['obj']
-            self.count_responded = len(self.tablets_agree.keys())
-            if (self.count_responded == self.number_of_tablets):
-                try:
-                    self.sleep_timer.cancel()
-                    print("self.sleep_timer.cancel()")
-                except:
-                    print("failed self.sleep_timer_cancel")
-                self.count_responded = 0
-
-                count_agree = 0
-                for v in self.tablets_agree.values():
-                    if v:
-                        count_agree += 1
-                if count_agree == self.number_of_tablets:
-                    self.run_study_action(self.actions[self.robot_end_signal['all_agree']])
-                else:
-                    self.run_study_action(self.actions[self.robot_end_signal['not_all_agree']])
-
-        if 'btn_continue' in log['obj'] and log['action'] == 'press' and len(log['comment']) > 1:
-            client_ip = log['client_ip']
-            tablet_id = self.tablets_ids[client_ip]
-            subject_id = self.tablets_subjects_ids[tablet_id]
-
-            if tablet_id not in self.tablets_mark:
-                self.tablets_mark[tablet_id] = []
-            print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ log[comment]",log['comment'])
-            self.tablets_mark[tablet_id] = json.loads(log['comment']) # TODO: parse the comment
-
-            self.count_continue = 0
-            self.tablets_continue[tablet_id] = True
-            for value in self.tablets_continue.values():
-                if value == True:
-                    self.count_continue += 1
-            if (self.count_continue == self.number_of_tablets):
-                try:
-                    self.sleep_timer.cancel()
-                    print("self.sleep_timer.cancel()")
-                except:
-                    print("failed self.sleep_timer_cancel")
-                self.count_continue = 0
-
-                # check if same, find two that are not
-                tablet_pairs = []
-                for t_id_1 in self.tablets_mark.keys():
-                    for t_id_2 in self.tablets_mark.keys():
-                        if t_id_1 != t_id_2:
-                            if len(set(self.tablets_mark[t_id_1]).symmetric_difference(
-                                    set(self.tablets_mark[t_id_2])
-                            )) > 0: # there is some difference
-                                tablet_pairs.append([t_id_1, t_id_2])
-                if len(tablet_pairs) == 0: # they are all the same
-                    self.run_study_action(self.actions[self.robot_end_signal['all_same']])
-                else:
-                    the_pair = random.choice(tablet_pairs)
-                    self.actions[self.robot_end_signal['not_all_same']]["lookat"] = the_pair
-                    self.run_study_action(self.actions[self.robot_end_signal['not_all_same']])
-
-
-        # if 'audience_done' in log['obj'] and log['action'] == 'press':
-        #     client_ip = log['client_ip']
-        #     tablet_id = self.tablets_ids[client_ip]
-        #     subject_id = self.tablets_subjects_ids[tablet_id]
-        #     self.audience_done(tablet_id,subject_id,client_ip)
-        #
-        # if 'audience_group_done' in log['obj'] and log['action'] == 'press':
-        #     client_ip = log['client_ip']
-        #     tablet_id = self.tablets_ids[client_ip]
-        #     subject_id = self.tablets_subjects_ids[tablet_id]
-        #     self.audience_group_done(tablet_id,subject_id,client_ip)
-        #
-        # if 'audience_list' in log['obj']:
-        #     if 'text' in log['action']:
-        #         if self.tablets_ids[log['client_ip']] not in self.tablet_audience_data:
-        #             self.tablet_audience_data[self.tablets_ids[log['client_ip']]] = 0
-        #         self.tablet_audience_data[self.tablets_ids[log['client_ip']]] += 1
-        #         print("self.tablet_audience_data", self.tablet_audience_data)
-        #
-        # if 'agree' in log['obj']:
-        #     print("agree in")
-        #     # if self.tablets_ids[log['client_ip']] not in self.tablets_audience_agree.values():
-        #     #     self.tablets_audience_agree[int(self.tablets_ids[log['client_ip']])] = False
-        #     if log['obj'] == 'agree_list' and log['action'] == 'down':
-        #         print("agree_list True")
-        #         self.tablets_audience_agree[int(self.tablets_ids[log['client_ip']])] = True
-        #     elif (log['action'] == 'down'):  #dont_agree_list
-        #         print("agree_list False")
-        #         self.tablets_audience_agree[int(self.tablets_ids[log['client_ip']])] = False
-        #
-        #     allVoted = True
-        #     i=1
-        #     print("self.tablets_audience_agree=", self.tablets_audience_agree)
-        #     while i <= self.number_of_tablets:
-        #         if (self.tablets_audience_agree[i] == None):
-        #             allVoted = False
-        #         i += 1
-        #     if (allVoted == True):
-        #         self.waiting_timer = False
-        #         self.sleep_timer.cancel()
-        #         print("self.sleep_timer.cancel() ALL VOTED")
-        #         self.waiting = False
-        #         self.waiting_timer = False
-
-        if self.listen_to_text:
-            self.text_audience_group[log['obj']] = log['comment']
+    # def callback_log(self, data):
+    #     # print('----- log -----')
+    #     # print('----- log -----', data)
+    #     log = json.loads(data.data)
+    #     # print(log)
+    #
+    #     if 'btn_done' in log['obj'] and log['action'] == 'press':
+    #         client_ip = log['client_ip']
+    #         tablet_id = self.tablets_ids[client_ip]
+    #         subject_id = self.tablets_subjects_ids[tablet_id]
+    #         self.count_done = 0
+    #         self.tablets_done[tablet_id] = True
+    #         for value in self.tablets_done.values():
+    #             if value == True:
+    #                 self.count_done += 1
+    #         if (self.count_done == self.number_of_tablets_done):
+    #             try:
+    #                 self.sleep_timer.cancel()
+    #                 print("self.sleep_timer.cancel()")
+    #             except:
+    #                 print("failed self.sleep_timer_cancel")
+    #             self.count_done = 0
+    #             self.run_study_action(self.actions[self.robot_end_signal['done']])
+    #
+    #     if 'agree' in log['obj'] and log['action'] == 'press':
+    #         client_ip = log['client_ip']
+    #         tablet_id = self.tablets_ids[client_ip]
+    #         subject_id = self.tablets_subjects_ids[tablet_id]
+    #         self.tablets_agree[tablet_id] = not 'disagree' in log['obj']
+    #         self.count_responded = len(self.tablets_agree.keys())
+    #         if (self.count_responded == self.number_of_tablets):
+    #             try:
+    #                 self.sleep_timer.cancel()
+    #                 print("self.sleep_timer.cancel()")
+    #             except:
+    #                 print("failed self.sleep_timer_cancel")
+    #             self.count_responded = 0
+    #
+    #             count_agree = 0
+    #             for v in self.tablets_agree.values():
+    #                 if v:
+    #                     count_agree += 1
+    #             if count_agree == self.number_of_tablets:
+    #                 self.run_study_action(self.actions[self.robot_end_signal['all_agree']])
+    #             else:
+    #                 self.run_study_action(self.actions[self.robot_end_signal['not_all_agree']])
+    #
+    #     if 'btn_continue' in log['obj'] and log['action'] == 'press' and len(log['comment']) > 1:
+    #         client_ip = log['client_ip']
+    #         tablet_id = self.tablets_ids[client_ip]
+    #         subject_id = self.tablets_subjects_ids[tablet_id]
+    #
+    #         if tablet_id not in self.tablets_mark:
+    #             self.tablets_mark[tablet_id] = []
+    #         print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ log[comment]",log['comment'])
+    #         self.tablets_mark[tablet_id] = json.loads(log['comment']) # TODO: parse the comment
+    #
+    #         self.count_continue = 0
+    #         self.tablets_continue[tablet_id] = True
+    #         for value in self.tablets_continue.values():
+    #             if value == True:
+    #                 self.count_continue += 1
+    #         if (self.count_continue == self.number_of_tablets):
+    #             try:
+    #                 self.sleep_timer.cancel()
+    #                 print("self.sleep_timer.cancel()")
+    #             except:
+    #                 print("failed self.sleep_timer_cancel")
+    #             self.count_continue = 0
+    #
+    #             # check if same, find two that are not
+    #             tablet_pairs = []
+    #             for t_id_1 in self.tablets_mark.keys():
+    #                 for t_id_2 in self.tablets_mark.keys():
+    #                     if t_id_1 != t_id_2:
+    #                         if len(set(self.tablets_mark[t_id_1]).symmetric_difference(
+    #                                 set(self.tablets_mark[t_id_2])
+    #                         )) > 0: # there is some difference
+    #                             tablet_pairs.append([t_id_1, t_id_2])
+    #             if len(tablet_pairs) == 0: # they are all the same
+    #                 self.run_study_action(self.actions[self.robot_end_signal['all_same']])
+    #             else:
+    #                 the_pair = random.choice(tablet_pairs)
+    #                 self.actions[self.robot_end_signal['not_all_same']]["lookat"] = the_pair
+    #                 self.run_study_action(self.actions[self.robot_end_signal['not_all_same']])
+    #
+    #
+    #     # if 'audience_done' in log['obj'] and log['action'] == 'press':
+    #     #     client_ip = log['client_ip']
+    #     #     tablet_id = self.tablets_ids[client_ip]
+    #     #     subject_id = self.tablets_subjects_ids[tablet_id]
+    #     #     self.audience_done(tablet_id,subject_id,client_ip)
+    #     #
+    #     # if 'audience_group_done' in log['obj'] and log['action'] == 'press':
+    #     #     client_ip = log['client_ip']
+    #     #     tablet_id = self.tablets_ids[client_ip]
+    #     #     subject_id = self.tablets_subjects_ids[tablet_id]
+    #     #     self.audience_group_done(tablet_id,subject_id,client_ip)
+    #     #
+    #     # if 'audience_list' in log['obj']:
+    #     #     if 'text' in log['action']:
+    #     #         if self.tablets_ids[log['client_ip']] not in self.tablet_audience_data:
+    #     #             self.tablet_audience_data[self.tablets_ids[log['client_ip']]] = 0
+    #     #         self.tablet_audience_data[self.tablets_ids[log['client_ip']]] += 1
+    #     #         print("self.tablet_audience_data", self.tablet_audience_data)
+    #     #
+    #     # if 'agree' in log['obj']:
+    #     #     print("agree in")
+    #     #     # if self.tablets_ids[log['client_ip']] not in self.tablets_audience_agree.values():
+    #     #     #     self.tablets_audience_agree[int(self.tablets_ids[log['client_ip']])] = False
+    #     #     if log['obj'] == 'agree_list' and log['action'] == 'down':
+    #     #         print("agree_list True")
+    #     #         self.tablets_audience_agree[int(self.tablets_ids[log['client_ip']])] = True
+    #     #     elif (log['action'] == 'down'):  #dont_agree_list
+    #     #         print("agree_list False")
+    #     #         self.tablets_audience_agree[int(self.tablets_ids[log['client_ip']])] = False
+    #     #
+    #     #     allVoted = True
+    #     #     i=1
+    #     #     print("self.tablets_audience_agree=", self.tablets_audience_agree)
+    #     #     while i <= self.number_of_tablets:
+    #     #         if (self.tablets_audience_agree[i] == None):
+    #     #             allVoted = False
+    #     #         i += 1
+    #     #     if (allVoted == True):
+    #     #         self.waiting_timer = False
+    #     #         self.sleep_timer.cancel()
+    #     #         print("self.sleep_timer.cancel() ALL VOTED")
+    #     #         self.waiting = False
+    #     #         self.waiting_timer = False
+    #
+    #     if self.listen_to_text:
+    #         self.text_audience_group[log['obj']] = log['comment']
 
 # ===== Group dynamics functions ====
 
     # based on tablet_marks, find a pair that disagrees
+
     def find_disagree(self):
         # check if same, find two that are not
         tablet_pairs = []
@@ -541,10 +623,10 @@ class ManagerNode():
 
     def find_rank(self):    # TODO: check
         sorted_sensor_speak = sorted(self.sensor_speak.items(), key=lambda kv: kv[1])
-        most_unspoken_ = sorted_sensor_speak[0]
+        most_unspoken_ = sorted_sensor_speak[0][0]
         rank_sensor_speak_ = {}
         for i, s in enumerate(sorted_sensor_speak):
-            rank_sensor_speak_[s] = i
+            rank_sensor_speak_[s[0]] = i
         return rank_sensor_speak_, most_unspoken_
 
     def the_end(self):

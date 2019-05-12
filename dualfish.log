@@ -1,0 +1,145 @@
+... logging to /home/curious/.ros/log/ee6b77bc-74e9-11e9-8e10-cc2f71219a8f/roslaunch-curious-UX530UX-17889.log
+Checking log directory for disk usage. This may take awhile.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/home/curious/catkin_ws/src/multi-camera-affdex/launch/multi_camera_affdex.launch
+[1mstarted roslaunch server http://curious-UX530UX:35809/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /affdexcam/data: /home/curious/pro...
+ * /rosdistro: indigo
+ * /rosversion: 1.11.21
+
+NODES
+  /
+    affdexcam (multi_camera_affdex/multi_camera_affdex)
+
+auto-starting new master
+[1mprocess[master]: started with pid [17901][0m
+[1mROS_MASTER_URI=http://localhost:11311[0m
+]2;/home/curious/catkin_ws/src/multi-camera-affdex/launch/multi_camera_affdex.launch http://localhost:11311
+[1msetting /run_id to ee6b77bc-74e9-11e9-8e10-cc2f71219a8f[0m
+[1mprocess[rosout-1]: started with pid [17919][0m
+started core service [/rosout]
+[1mprocess[affdexcam-2]: started with pid [17922][0m
+xmapfile: fisheye_grid_xmap.pgm
+ymapfile: fisheye_grid_ymap.pgm
+ThetaS with crop 33
+Writing files
+
+Number of pixels total(from rows*cols): 819200
+Number of pixels written in file fisheye_grid_ymap.pgm: 819200
+
+
+Number of pixels total(from rows*cols): 819200
+Number of pixels written in file fisheye_grid_xmap.pgm: 819200
+
+Found 0 faces!
+Found 0 faces!
+Found 0 faces!
+Found 0 faces!
+Found 0 faces!
+Program has stopped ...
+
+[affdexcam-2] killing on exit
+[0m[ INFO] [1557688370.047370652]: Subscribing to /ReSpeaker[0m
+[0m[ INFO] [1557688370.051537364]: Recording to microphone.bag.[0m
+[0m[ INFO] [1557688370.028758999]: Subscribing to /usb_cam/image_raw[0m
+[0m[ INFO] [1557688370.034130997]: Recording to last_record.bag.[0m
+[rosout-1] killing on exit
+[master] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+[1mdone[0m
+Found 0 faces!
+... logging to /home/curious/.ros/log/0ad818a6-74ea-11e9-a2d0-cc2f71219a8f/roslaunch-curious-UX530UX-18363.log
+Checking log directory for disk usage. This may take awhile.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/home/curious/catkin_ws/src/multi-camera-affdex/launch/multi_camera_affdex.launch
+[1mstarted roslaunch server http://curious-UX530UX:45595/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /affdexcam/data: /home/curious/pro...
+ * /rosdistro: indigo
+ * /rosversion: 1.11.21
+
+NODES
+  /
+    affdexcam (multi_camera_affdex/multi_camera_affdex)
+
+auto-starting new master
+[1mprocess[master]: started with pid [18375][0m
+[1mROS_MASTER_URI=http://localhost:11311[0m
+]2;/home/curious/catkin_ws/src/multi-camera-affdex/launch/multi_camera_affdex.launch http://localhost:11311
+[1msetting /run_id to 0ad818a6-74ea-11e9-a2d0-cc2f71219a8f[0m
+[1mprocess[rosout-1]: started with pid [18388][0m
+started core service [/rosout]
+[1mprocess[affdexcam-2]: started with pid [18391][0m
+Program has stopped ...
+
+[affdexcam-2] killing on exit
+[0m[ INFO] [1557688417.910209606]: Subscribing to /usb_cam/image_raw[0m
+[0m[ INFO] [1557688417.921734861]: Recording to last_record.bag.[0m
+[0m[ INFO] [1557688417.916619280]: Subscribing to /ReSpeaker[0m
+[0m[ INFO] [1557688417.925466637]: Recording to microphone.bag.[0m
+[rosout-1] killing on exit
+[master] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+[1mdone[0m
+... logging to /home/curious/.ros/log/197f7084-74ea-11e9-9129-cc2f71219a8f/roslaunch-curious-UX530UX-18635.log
+Checking log directory for disk usage. This may take awhile.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/home/curious/catkin_ws/src/multi-camera-affdex/launch/multi_camera_affdex.launch
+[1mstarted roslaunch server http://curious-UX530UX:34564/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /affdexcam/data: /home/curious/pro...
+ * /rosdistro: indigo
+ * /rosversion: 1.11.21
+
+NODES
+  /
+    affdexcam (multi_camera_affdex/multi_camera_affdex)
+
+auto-starting new master
+[1mprocess[master]: started with pid [18647][0m
+[1mROS_MASTER_URI=http://localhost:11311[0m
+]2;/home/curious/catkin_ws/src/multi-camera-affdex/launch/multi_camera_affdex.launch http://localhost:11311
+[1msetting /run_id to 197f7084-74ea-11e9-9129-cc2f71219a8f[0m
+[1mprocess[rosout-1]: started with pid [18660][0m
+started core service [/rosout]
+[1mprocess[affdexcam-2]: started with pid [18663][0m
+Found 0 faces!
+Found 0 faces!
+Found 0 faces!
+Found 0 faces!
+Found 0 faces!
+Found 0 faces!
+Found 0 faces!
+Found 0 faces!
+Found 0 faces!
+Program has stopped ...
+
+[affdexcam-2] killing on exit
+[0m[ INFO] [1557688442.284834500]: Subscribing to /ReSpeaker[0m
+[0m[ INFO] [1557688442.288469411]: Recording to microphone.bag.[0m
+[0m[ INFO] [1557688442.191751018]: Subscribing to /usb_cam/image_raw[0m
+[0m[ INFO] [1557688442.240578240]: Recording to last_record.bag.[0m
+[rosout-1] killing on exit
+[master] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+[1mdone[0m
+Found 0 faces!
