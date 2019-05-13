@@ -5,7 +5,7 @@ import requests
 import time
 import copy
 
-database = False
+database = True
 
 
 class TabletNode():
@@ -64,8 +64,7 @@ class TabletNode():
                 print(lecture['name'], res)
                 if lecture['name'] == 'lecture_2':
                     self.current_lecture = lecture
-
-        self.first_section = self.current_lecture['sectionsOrdering'][0]
+            self.first_section = json.loads(self.current_lecture['sectionsOrdering'])[0]
         rospy.spin()
 
     def start(self):

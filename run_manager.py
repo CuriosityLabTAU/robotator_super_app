@@ -215,8 +215,11 @@ class ManagerNode():
                        "parameters": action['parameters']}
         self.robot_end_signal = {action['parameters'][0]: False}
         self.robot_publisher.publish(json.dumps(nao_message))
-        while not self.robot_end_signal[action['parameters'][0]]:
-            pass
+        if is_robot:
+            while not self.robot_end_signal[action['parameters'][0]]:
+                pass
+        else:
+            time.sleep(2)
 
     def robot_wakeup(self, action):
         local_action = {"action": "wake_up"}
@@ -302,12 +305,10 @@ class ManagerNode():
         if is_sensor:
             # rule: find most unspoken people
             unspeaking_rank, most_unspoken = self.find_rank()
-        # rule: find most unspoken people
-        unspeaking_rank, most_unspoken = self.find_rank()
-        self.log_publisher.publish(json.dumps({
-            'log': 'unspeaking',
-            'data': unspeaking_rank
-        }))
+            self.log_publisher.publish(json.dumps({
+                'log': 'unspeaking',
+                'data': unspeaking_rank
+            }))
 
         if len(pairs) > 0:
             # rule: find pair who spoke least
@@ -319,22 +320,20 @@ class ManagerNode():
                     best_unspoken = unspoken
                     best_pair = copy.copy(p)
             # run the appropriate behavior
-            parameters = 'address_pair_%d_%d' % (best_pair[0], best_pair[1])
+            parameters = ['address_pair_%d_%d' % (best_pair[0], best_pair[1])]
         else:
             # address person who spoke least
-            parameters = 'explain_%d' % most_unspoken
+            parameters = ['explain_%d' % most_unspoken]
 
         nao_message = {"action": 'run_behavior',
                        "parameters": parameters}
-        self.robot_end_signal = {action['parameters'][0]: False}
+        self.robot_end_signal = {nao_message['parameters'][0]: False}
         self.robot_publisher.publish(json.dumps(nao_message))
         if is_robot:
             while not self.robot_end_signal[action['parameters'][0]]:
                 pass
         else:
             time.sleep(2)
-        while not self.robot_end_signal[action['parameters'][0]]:
-            pass
 
         # reset the counters
         self.sensor_publisher.publish("C")
