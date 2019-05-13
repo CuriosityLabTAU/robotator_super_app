@@ -5,6 +5,8 @@ import requests
 import time
 import copy
 
+database = False
+
 
 class TabletNode():
 
@@ -54,19 +56,28 @@ class TabletNode():
         self.current_lecture = None
 
         self.current_lecture = ''  # TODO: get it somehow
-        # LECTURES
-        lectures = requests.get('http://localhost/apilocaladmin/api/v1/admin/lectures').json()
-        for lecture in lectures:
-            res = requests.put('http://localhost/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid'])
-            print(lecture['name'], res)
+        if database:
+            # LECTURES
+            lectures = requests.get('http://localhost/apilocaladmin/api/v1/admin/lectures').json()
+            for lecture in lectures:
+                res = requests.put('http://localhost/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid'])
+                print(lecture['name'], res)
 
         rospy.spin()
 
     def start(self):
-        # DEVICES
-        print('----- devices -----')
-        self.devices = requests.get('http://localhost/apilocaladmin/api/v1/device/getAll').json()
+        if database:
+            # DEVICES
+            print('----- devices -----')
+            self.devices = requests.get('http://localhost/apilocaladmin/api/v1/device/getAll').json()
+        else:
+            self.devices = [{
+                'id': 1,
+                'user_name': '1,1'
+            }
+            ]
         self.number_of_tablets = len(self.devices)
+
 
         # register all tablets
         for d in self.devices:

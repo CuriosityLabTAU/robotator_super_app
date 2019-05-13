@@ -39,6 +39,7 @@ def start_working(group_id, nao_ip):
     t1.start()
     threading._sleep(2.5)
 
+    # # running in cmd, because of many outputs!
     # t2 = threading.Thread(target=worker2)
     # t2.start()
     # threading._sleep(2.5)

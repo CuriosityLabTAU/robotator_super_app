@@ -9,6 +9,15 @@ lecture = json.load(open(the_path + the_file))
 # convert lecture json to activity json
 
 
+def isEnglish(s):
+    try:
+        s.encode(encoding='utf-8').decode('ascii')
+    except UnicodeDecodeError:
+        return False
+    else:
+        return True
+
+
 def print_part(part_):
     for k in ['tag', 'action', 'next']:
         print(k, ':', part_[k])
@@ -35,6 +44,16 @@ base_robot_action = {
     'next': 'next',
     'debug': 'debug'
 }
+
+base_robot_animated_text = {
+    'tag': 'tag',
+    'target': 'robot',
+    'action': 'animated_text_to_speech',
+    'parameters': ['parameters'],
+    'next': 'next',
+    'debug': 'debug'
+}
+
 
 base_robot_sleep = {
     'tag': 'tag',
@@ -110,9 +129,14 @@ for s, section in enumerate(lecture['sections']):
             part['next'] = 'section_%s_robot_instruction' % section['name']
             parts.append(copy.copy(part))
 
-            part = copy.copy(base_robot_action)
+            if isEnglish(section['notes']):
+                part = copy.copy(base_robot_animated_text)
+                part['parameters'] = [section['notes']]
+            else:
+                part['parameters'] = ['section_%s' % section['name']]
+                part = copy.copy(base_robot_action)
             part['tag'] = parts[-1]['next']
-            part['parameters'] = ['section_%s' % section['name']]
+
     if s < len(lecture['sections']) - 1:
         the_next_part = 'section_%s_show_screen' % lecture['sections'][s + 1]['name']
     else:

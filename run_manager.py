@@ -97,11 +97,10 @@ class ManagerNode():
         # sensor variables
         self.sensor_speak = {}
         self.engagement = {}
-        self.current_speaker = None
+        self.current_speaker = 3
 
         # robot behavior management variables
         self.is_sleeping = False
-
 
         # the flow variables
         self.actions = None
@@ -165,8 +164,11 @@ class ManagerNode():
             self.run_study_action(next_action)
 
         elif action['target'] == 'robot':
-            if action["action"] in ["play_audio_file"]:
-                self.robot_play_audio_file(action)
+            if action["action"] in ["play_audio_file", "animated_text_to_speech"]:
+                if 'play' in action['action']:
+                    self.robot_play_audio_file(action)
+                elif 'animated' in action['action']:
+                    self.robot_animated_text_to_speech(action)
                 if action['next'] != 'end':
                     next_action = self.actions[action['next']]
                     self.run_study_action(next_action)
@@ -203,6 +205,15 @@ class ManagerNode():
                 self.robot_resolution(action)
             elif "wake_up" in action["action"]:
                 self.robot_wakeup(action)
+
+    def robot_animated_text_to_speech(self, action):
+        self.is_sleeping = False
+        nao_message = {"action": action['action'],
+                       "parameters": action['parameters']}
+        self.robot_end_signal = {action['parameters'][0]: False}
+        self.robot_publisher.publish(json.dumps(nao_message))
+        while not self.robot_end_signal[action['parameters'][0]]:
+            pass
 
     def robot_wakeup(self, action):
         local_action = {"action": "wake_up"}
@@ -241,19 +252,27 @@ class ManagerNode():
         self.robot_end_signal = {}
         for k, v in action["end"].items():
             self.robot_end_signal[k] = v
+
+        print('==== Participants Status =====')
+        print(self.engagement)
+        print(self.current_speaker)
+
         # TODO: look at person speaks + person least engaged
-        least_engaged = sorted(self.engagement.items(), key=lambda kv: kv[1])[0]
-        if least_engaged[1] < 30.0: # not engaged
-            self.robot_publisher.publish(json.dumps({
-                "action": 'run_behavior',
-                "parameters": 'engage_%d' % least_engaged[0]
-            }))
-            time.sleep(5)
+        least_engaged = sorted(self.engagement.items(), key=lambda kv: kv[1])
+        print('robot_sleep', least_engaged)
+        if len(least_engaged) > 0:
+            least_engaged = least_engaged[0]
+            if least_engaged[1] < 30.0: # not engaged
+                self.robot_publisher.publish(json.dumps({
+                    "action": 'run_behavior',
+                    "parameters": ['Engage_%d' % least_engaged[0]]
+                }))
+                time.sleep(5)
 
         while self.is_sleeping:
             self.robot_publisher.publish(json.dumps({
                 "action": 'run_behavior',
-                "parameters": 'engage_%d' % self.current_speaker
+                "parameters": ['Engage_%d' % self.current_speaker]
             }))
             time.sleep(1)
 
@@ -287,7 +306,7 @@ class ManagerNode():
                     best_unspoken = unspoken
                     best_pair = copy.copy(p)
             # run the appropriate behavior
-            parameters = 'discuss_%d_%d' % (best_pair[0], best_pair[1])
+            parameters = 'address_pair_%d_%d' % (best_pair[0], best_pair[1])
         else:
             # address person who spoke least
             parameters = 'explain_%d' % most_unspoken
@@ -469,6 +488,7 @@ class ManagerNode():
     def callback_speak(self, data):
         subject_data = json.loads(str(data.data))
         self.current_speaker = self.pos_to_tablet([{'pos': subject_data['x'], 'count': 0}]).keys()[0]
+        print('Got speaker data: current speaker', self.current_speaker)
 
     # TODO: probably don't need at all
     # def callback_log(self, data):
