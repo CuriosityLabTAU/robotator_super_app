@@ -4,7 +4,7 @@ import json
 import copy
 
 the_path = 'lecture_files/'
-the_file = '6fe89170-73dd-11e9-a32f-5b02d2874b9e.json'
+the_file = 'd05475f0-75b4-11e9-a424-f103c79ae4da.json'
 lecture = json.load(open(the_path + the_file))
 # convert lecture json to activity json
 

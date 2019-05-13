@@ -11,6 +11,9 @@ import copy
 robot_path = '/home/nao/naoqi/sounds/HCI/'
 the_lecture_flow_json_file = 'flow_files/"robotator_study.json"'
 
+is_robot = False
+is_sensor = False
+
 
 class ManagerNode():
 
@@ -74,7 +77,7 @@ class ManagerNode():
         self.waiting_timer = False
         self.waiting_robot = False
 
-        self.session = 'lecture_1'
+        self.session = {'name': 'lecture_2'}
 
         i=1
         while i <= self.number_of_tablets:
@@ -133,7 +136,7 @@ class ManagerNode():
 
     def run_generic_script(self):
         print("run_study")
-        data_file = open('flow_files/%s.json' % self.session)
+        data_file = open('flow_files/%s.json' % self.session['name'])
         study_sequence = json.load(data_file)
         # self.poses_conditions = logics_json['conditions']
 
@@ -237,8 +240,11 @@ class ManagerNode():
                        "parameters": action['parameters']}
         self.robot_end_signal = {action['parameters'][0]: False}
         self.robot_publisher.publish(json.dumps(nao_message))
-        while not self.robot_end_signal[action['parameters'][0]]:
-            pass
+        if is_robot:
+            while not self.robot_end_signal[action['parameters'][0]]:
+                pass
+        else:
+            time.sleep(2)
 
     def robot_sleep(self, action):
         self.is_sleeping = True
@@ -282,6 +288,10 @@ class ManagerNode():
         # do group-dynamics logic
         # goal: find out whom to address
 
+        # first guess
+        most_unspoken = 1
+        unspeaking_rank = [i for i in range(self.number_of_tablets)]
+
         # rule: find disagreeing tablets
         pairs = self.find_disagree()
         self.log_publisher.publish(json.dumps({
@@ -289,6 +299,9 @@ class ManagerNode():
             'data': pairs
         }))
 
+        if is_sensor:
+            # rule: find most unspoken people
+            unspeaking_rank, most_unspoken = self.find_rank()
         # rule: find most unspoken people
         unspeaking_rank, most_unspoken = self.find_rank()
         self.log_publisher.publish(json.dumps({
@@ -315,6 +328,11 @@ class ManagerNode():
                        "parameters": parameters}
         self.robot_end_signal = {action['parameters'][0]: False}
         self.robot_publisher.publish(json.dumps(nao_message))
+        if is_robot:
+            while not self.robot_end_signal[action['parameters'][0]]:
+                pass
+        else:
+            time.sleep(2)
         while not self.robot_end_signal[action['parameters'][0]]:
             pass
 
@@ -331,8 +349,11 @@ class ManagerNode():
         self.robot_publisher.publish(json.dumps(nao_message))
         self.waiting = True
         self.waiting_robot = True
-        while self.waiting_robot:
-            pass
+        if is_robot:
+            while self.waiting_robot:
+                pass
+        else:
+            time.sleep(2)
         print('done waiting_robot', nao_message["action"])
 
 

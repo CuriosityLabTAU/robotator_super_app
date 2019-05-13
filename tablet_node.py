@@ -62,7 +62,10 @@ class TabletNode():
             for lecture in lectures:
                 res = requests.put('http://localhost/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid'])
                 print(lecture['name'], res)
+                if lecture['name'] == 'lecture_2':
+                    self.current_lecture = lecture
 
+        self.first_section = self.current_lecture['sectionsOrdering'][0]
         rospy.spin()
 
     def start(self):
@@ -76,6 +79,16 @@ class TabletNode():
                 'user_name': '1,1'
             }
             ]
+        # set the first section to be the first section
+        r = requests.post('http://localhost/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
+            'lectureUUID': self.current_lecture['uuid'],
+            'sectionUUID': self.first_section
+        })
+        print('tablet_node', 'switch to first section', r, r.text)
+
+        # DEVICES
+        print('----- devices -----')
+        self.devices = requests.get('http://localhost/apilocaladmin/api/v1/device/getAll').json()
         self.number_of_tablets = len(self.devices)
 
 
@@ -106,6 +119,7 @@ class TabletNode():
             self.start()
             return
 
+        print('====', 'tablet_node', data.data)
         info = json.loads(data.data)
         the_section = info['screen_name']
         the_tablet = info['client_ip']
@@ -113,6 +127,10 @@ class TabletNode():
         self.current_section = '' # TODO
         current_section_order = 0
         # TODO: show section
+        r = requests.post('http://localhost/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
+            'lectureUUID': self.current_lecture['uuid'],
+            'sectionUUID': the_section
+        })
 
         if info['response']:
             duration = info['duration']
