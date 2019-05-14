@@ -11,13 +11,13 @@ import copy
 robot_path = '/home/nao/naoqi/sounds/HCI/'
 the_lecture_flow_json_file = 'flow_files/"robotator_study.json"'
 
-is_robot = False
+is_robot = True
 is_sensor = False
 
 
 class ManagerNode():
 
-    number_of_tablets = 1
+    number_of_tablets = 2
     tablets = {}    #in the form of {tablet_id_1:{"subject_id":subject_id, "tablet_ip";tablet_ip}
                                     #,tablet_id_2:{"subject_id":subject_id, "tablet_ip";tablet_ip}
 
@@ -148,6 +148,10 @@ class ManagerNode():
         self.run_study_action(self.actions['start'])
 
     def run_study_action(self, action):
+        self.log_publisher.publish(json.dumps({
+            'log': 'action',
+            'data': action['tag']
+        }))
         print(action['tag'], action)
         if action['target'] == 'tablet':
             if "tablets" in action:
@@ -323,14 +327,16 @@ class ManagerNode():
             parameters = ['address_pair_%d_%d' % (best_pair[0], best_pair[1])]
         else:
             # address person who spoke least
-            parameters = ['explain_%d' % most_unspoken]
+            # TODO explain is not here
+            # parameters = ['explain_%d' % most_unspoken]
+            parameters = ['address_pair_1_2']
 
         nao_message = {"action": 'run_behavior',
                        "parameters": parameters}
         self.robot_end_signal = {nao_message['parameters'][0]: False}
         self.robot_publisher.publish(json.dumps(nao_message))
         if is_robot:
-            while not self.robot_end_signal[action['parameters'][0]]:
+            while not self.robot_end_signal[nao_message['parameters'][0]]:
                 pass
         else:
             time.sleep(2)

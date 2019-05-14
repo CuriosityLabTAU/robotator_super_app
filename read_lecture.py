@@ -4,7 +4,7 @@ import json
 import copy
 
 the_path = 'lecture_files/'
-the_file = 'd05475f0-75b4-11e9-a424-f103c79ae4da.json'
+the_file = 'd05475f0-75b4-11e9-a424-f103c79ae4da_2.json'
 lecture = json.load(open(the_path + the_file))
 # convert lecture json to activity json
 
@@ -140,7 +140,7 @@ for s, section in enumerate(lecture['sections']):
     if s < len(lecture['sections']) - 1:
         the_next_part = 'section_%s_show_screen' % lecture['sections'][s + 1]['name']
     else:
-        the_next_part = 'lecture_%s' % lecture['name']
+        the_next_part = 'end'
 
     if section['key'] not in ['image']:
         part['next'] = 'section_%s_robot_sleep' % section['name']

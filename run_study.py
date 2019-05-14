@@ -5,7 +5,7 @@ import sys
 import subprocess
 
 
-def intro(group_id=0, nao_ip='192.168.0.101'):
+def intro(group_id=0, nao_ip='192.168.0.103'):
     start_working(group_id, nao_ip)
 
     time.sleep(60)
@@ -35,9 +35,9 @@ def start_working(group_id, nao_ip):
         os.system('rostopic pub -1 /to_tablet std_msgs/String "start"')
 
 
-    # t1 = threading.Thread(target=worker1)
-    # t1.start()
-    # threading._sleep(2.5)
+    t1 = threading.Thread(target=worker1)
+    t1.start()
+    threading._sleep(2.5)
 
     # # running in cmd, because of many outputs!
     # t2 = threading.Thread(target=worker2)
