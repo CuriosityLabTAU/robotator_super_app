@@ -3,27 +3,27 @@
 - Get computer ip
 - Connect tablets to TPLINK
 
-- Run SessionApp
-- Insert "register" into user name
-- Insert computer's IP to all tablets (first time, it remembers later)
-- Exit SessionApp
-
 ** For each group
-- In SessionApp
+- Go to ManageApps
+--- SessionApp
+--- remove data
+--- confirm
+
+- Run SessionApp
 --- Enter "group_id, user_id" in user_name (IP is already inserted)
+--- Insert computer's IP to all tablets
 --- Press OK
 
-- run ManagerNode (waiting for register_tablet)
-- run ServerNode
---- init --> present all lectures/sessions
+- From Terminal
+>> python run_study.py !!group_id!!!
 
-
+- In SessionApp
 --- Select current session
---- A "wait" screen appears
 
-- run ServerNode
---- get connected tablets
---- send register_tablet
+*** To Begin Study
+- In Terminal
+--- Write 1, 2 or 3, then enter
+
 
 ---> interaction begins
 

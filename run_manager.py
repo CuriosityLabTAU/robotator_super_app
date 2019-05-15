@@ -92,6 +92,7 @@ class ManagerNode():
         self.tablets_agree = {}
         self.tablets_mark = {}
         self.tablets_continue = {}
+        self.count_done = 0
 
         self.tablet_calibration = json.load(open('calibration.txt'))
 
@@ -106,10 +107,13 @@ class ManagerNode():
         # the flow variables
         self.actions = None
 
+
         # tablet and server initializations
         self.devices = []
+        self.finished_register = False
 
         self.current_lecture = None
+        self.current_section = None
         if database:
             # LECTURES
             self.lectures = requests.get('http://localhost/apilocaladmin/api/v1/admin/lectures').json()
@@ -152,6 +156,10 @@ class ManagerNode():
         data_file = open('flow_files/%s.json' % self.session['name'])
         study_sequence = json.load(data_file)
         # self.poses_conditions = logics_json['conditions']
+        self.log_publisher.publish(json.dumps({
+            'log': 'json_file',
+            'data': data_file
+        }))
 
         self.actions = {}
 
@@ -174,6 +182,7 @@ class ManagerNode():
                 message['section_uuid'] = action['screen_name']
                 # self.tablet_publisher.publish(json.dumps(message))
                 threading.Thread(target=self.tablet_actions, args=[message]).start()
+                time.sleep(0.15)
 
                 # for tablet_id in action['tablets']:
                 #     try:
@@ -188,7 +197,7 @@ class ManagerNode():
                 #         self.tablets_mark = {}
                 #     except:
                 #         print('not enough tablets')
-            next_action = self.actions[action['next']]
+            next_action = copy.copy(self.actions[action['next']])
             print('from show screen to ...', next_action)
             self.run_study_action(next_action)
 
@@ -199,7 +208,7 @@ class ManagerNode():
                 elif 'animated' in action['action']:
                     self.robot_animated_text_to_speech(action)
                 if action['next'] != 'end':
-                    next_action = self.actions[action['next']]
+                    next_action = copy.copy(self.actions[action['next']])
                     self.run_study_action(next_action)
                 else:
                     self.the_end()
@@ -235,32 +244,33 @@ class ManagerNode():
             elif "wake_up" in action["action"]:
                 self.robot_wakeup(action)
 
-    def get_current_answers(self):
+    def get_current_answers(self, a_section):
         all_answers = requests.get('http://localhost/apilocaladmin/api/v1/lecture/%s/answers' %
                                    self.current_lecture['uuid']).json()
-        current_answers = [a['answers'] for a in all_answers if a['uuid'] == self.current_section][0]
+        current_answers = [a['answers'] for a in all_answers if a['uuid'] == a_section][0]
         tablet_answers = {}
         for ca in current_answers:
             tablet_answers[ca['device_id']] = ca
         return tablet_answers
 
     def tablet_actions(self, info):
-        self.current_section = info['screen_name']
+        current_section = info['screen_name']
 
         r = requests.post('http://localhost/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
             'lectureUUID': self.current_lecture['uuid'],
-            'sectionUUID': self.current_section
+            'sectionUUID': current_section
         })
 
         if info['response']:
+            print('tablet_actions', 'response', info)
             duration = info['duration']
 
-            current_answers = self.get_current_answers()
+            current_answers = self.get_current_answers(current_section)
 
             # if the section requires response, if someone answered, publish it, until all answered or time passes
             start_time = time.time()
             while (time.time() - start_time) < duration:
-                new_answers = self.get_current_answers()
+                new_answers = self.get_current_answers(current_section)
 
                 for i_answer, answer in new_answers.items():
                     if current_answers[i_answer]['answered'] == 0 and new_answers[i_answer]['answered'] == 1:
@@ -269,9 +279,11 @@ class ManagerNode():
                                         'client_ip': answer['device_id'],
                                         'answer': answer['answer']
                                         }
+                        time.sleep(0.1)
                         self.participant_done(done_message)
                         # self.publisher.publish(json.dumps(done_message))
                         print('published:', done_message)
+                        break
                 time.sleep(0.1)
                 current_answers = copy.copy(new_answers)
 
@@ -290,32 +302,28 @@ class ManagerNode():
     def robot_wakeup(self, action):
         local_action = {"action": "wake_up"}
         self.run_robot_behavior(local_action)
-        local_action = {'action': 'set_autonomous_state', 'parameters': ['solitary']}
-        self.run_robot_behavior(local_action)
-        next_action = self.actions[action['next']]
+        # local_action = {'action': 'set_autonomous_state', 'parameters': ['solitary']}
+        # self.run_robot_behavior(local_action)
+        next_action = copy.copy(self.actions[action['next']])
         self.run_study_action(next_action)
 
     def robot_play_audio_file(self, action):
         print('play audio action', action)
         self.is_sleeping = False
+        the_audio_file_name = []
         # go over parameters and add robot_path
         for i, p in enumerate(action['parameters']):
             if 'wait' not in p:
-                action['parameters'][i] = robot_path + p
-                if "audio" in action["action"]:
-                    action['parameters'][i] += ".wav"
+                the_audio_file_name.append(robot_path + p + '.wav')
 
-        if 'wav.wav' in action['parameters']:
-            print('ERROR:', action)
-            return
         # send message to robot and wait for reply (from another thread)
-        nao_message = {"action": action['action'],
-                       "parameters": action['parameters']}
-        self.robot_end_signal = {action['parameters'][0]: False}
+        nao_message = {"action": 'play_audio_file',
+                       "parameters": the_audio_file_name}
+        self.robot_end_signal = {nao_message['parameters'][0]: False}
         self.robot_publisher.publish(json.dumps(nao_message))
-        time.sleep(1)
+        time.sleep(0.23)
         if is_robot:
-            while not self.robot_end_signal[action['parameters'][0]]:
+            while not self.robot_end_signal[nao_message['parameters'][0]]:
                 pass
         else:
             time.sleep(2)
@@ -325,12 +333,12 @@ class ManagerNode():
         print("start_timer")
         # either go on timeout
         self.sleep_timer = Timer(float(action["seconds"]), self.run_study_action,
-                                 [self.actions[action["end"]["timeout"]]])
+                                 [self.actions[action["done"]["timeout"]]])
         self.sleep_timer.start()
 
         # or go on something else
         self.robot_end_signal = {}
-        for k, v in action["end"].items():
+        for k, v in action["done"].items():
             self.robot_end_signal[k] = v
 
         # Look at person speaks + person least engaged
@@ -363,11 +371,14 @@ class ManagerNode():
         # goal: find out whom to address
 
         # first guess
-        most_unspoken = 1
-        unspeaking_rank = [i for i in range(self.number_of_tablets)]
+        unspeaking_rank = {
+            '1': 0,
+            '2': 1
+        }
 
         # rule: find disagreeing tablets
         pairs = self.find_disagree()
+        print('pairs from disagree', pairs)
         self.log_publisher.publish(json.dumps({
             'log': 'disagree_pairs',
             'data': pairs
@@ -380,33 +391,47 @@ class ManagerNode():
                 'log': 'unspeaking',
                 'data': unspeaking_rank
             }))
+            if len(pairs) == 0: # there are no disagreeing pairs, so choose the two most unspoken ones
+                if len(unspeaking_rank) >= 2:
+                    pairs = [unspeaking_rank[:2]]
+                else:
+                    pairs = [['1', '2']]
+        print('pairs after sensor', pairs)
 
-        if len(pairs) > 0:
-            # rule: find pair who spoke least
-            best_pair = pairs[0]
-            best_unspoken = 10 # more than twice the number of participants
-            for p in pairs:
-                unspoken = unspeaking_rank[p[0]] + unspeaking_rank[p[1]]
-                if unspoken < best_unspoken:
-                    best_unspoken = unspoken
-                    best_pair = copy.copy(p)
-            # run the appropriate behavior
-            self.robot_publisher.publish(json.dumps({"action": 'play_audio_file',
-                                                     "parameters": [robot_path + 'Two_explain.wav']}))
+        if len(pairs) == 0: # still no pairs, choose random
+            if self.number_of_tablets > 1:
+                pairs = [random.sample([(i+1) for i in range(self.number_of_tablets)], 2)]
+            else:
+                pairs = [['1','2']]
+        print('pairs after correction', pairs)
 
-            parameters = ['address_pair_%d_%d' % (best_pair[0], best_pair[1])]
-        else:
-            # address person who spoke least
-            # TODO explain is not here
-            # parameters = ['Explain_%d' % most_unspoken]
-            self.robot_publisher.publish(json.dumps({"action": 'play_audio_file',
-                                                     "parameters": [robot_path + 'Explain.wav']}))
-            parameters = ['Engage_%d' % most_unspoken]
+        # rule: find pair who spoke least
+        print('unspeaking_rank', unspeaking_rank)
+
+        best_pair = pairs[0]
+        best_unspoken = 10 # more than twice the number of participants
+        for p in pairs:
+            unspoken = unspeaking_rank[p[0]] + unspeaking_rank[p[1]]
+            if unspoken < best_unspoken:
+                best_unspoken = unspoken
+                best_pair = copy.copy(p)
+        print('pairs best', best_pair)
+
+        self.log_publisher.publish(json.dumps({
+            'log': 'best_pair',
+            'data': best_pair
+        }))
+        # run the appropriate behavior
+        parameters = ['address_pair_%s_%s' % (best_pair[0], best_pair[1])]
 
         nao_message = {"action": 'run_behavior',
                        "parameters": parameters}
         self.robot_end_signal = {nao_message['parameters'][0]: False}
         self.robot_publisher.publish(json.dumps(nao_message))
+        time.sleep(0.2)
+
+        self.robot_publisher.publish(json.dumps({"action": 'play_audio_file',
+                                                 "parameters": [robot_path + 'Two_explain.wav']}))
         if is_robot:
             while not self.robot_end_signal[nao_message['parameters'][0]]:
                 pass
@@ -436,30 +461,30 @@ class ManagerNode():
 
     # ==== handling tablets =====
 
-    def audience_done (self, tablet_id, subject_id, client_ip):
-        print("audience_done!!! tablet_id=", tablet_id)
-        self.count_audience_done = 0
-        print ("values before", self.tablets_audience_done.values())
-        self.tablets_audience_done[tablet_id] =  True
-        print ("values after",self.tablets_audience_done.values())
-        for value in self.tablets_audience_done.values():
-            if value ==True:
-                self.count_audience_done += 1
-                print("self.count_audience_done",self.count_audience_done)
-
-        if (self.count_audience_done == self.number_of_tablets):
-            print("self.count_audience_done == self.number_of_tablets",self.count_audience_done,self.number_of_tablets)
-            try:
-                self.sleep_timer.cancel()
-                print("self.sleep_timer.cancel()")
-            except:
-                print("failed self.sleep_timer_cancel")
-            self.waiting_timer = False
-            self.is_audience_done = True
-            #restart the values for future screens
-            self.count_audience_done = 0
-            #for key in self.tablets_audience_done.keys():
-            #    self.tablets_audience_done[key]=False
+    # def audience_done (self, tablet_id, subject_id, client_ip):
+    #     print("audience_done!!! tablet_id=", tablet_id)
+    #     self.count_audience_done = 0
+    #     print ("values before", self.tablets_audience_done.values())
+    #     self.tablets_audience_done[tablet_id] =  True
+    #     print ("values after",self.tablets_audience_done.values())
+    #     for value in self.tablets_audience_done.values():
+    #         if value:
+    #             self.count_audience_done += 1
+    #             print("self.count_audience_done",self.count_audience_done)
+    #
+    #     if self.count_audience_done == self.number_of_tablets:
+    #         print("self.count_audience_done == self.number_of_tablets",self.count_audience_done,self.number_of_tablets)
+    #         try:
+    #             self.sleep_timer.cancel()
+    #             print("self.sleep_timer.cancel()")
+    #         except:
+    #             print("failed self.sleep_timer_cancel")
+    #         self.waiting_timer = False
+    #         self.is_audience_done = True
+    #         #restart the values for future screens
+    #         self.count_audience_done = 0
+    #         #for key in self.tablets_audience_done.keys():
+    #         #    self.tablets_audience_done[key]=False
 
     def register_tablet(self, parameters, client_ip):
         if 'robot' not in parameters['condition']:
@@ -474,11 +499,14 @@ class ManagerNode():
         if parameters['session']:
             self.session = parameters['session']
 
+        self.finished_register = False
         nao_message = {'action': 'say_text_to_speech', 'client_ip':client_ip,
                        'parameters': ['register tablet', 'tablet_id',str(parameters['tablet_id']),
                                       'group id',str(parameters['group_id'])]}
         self.robot_publisher.publish(json.dumps(nao_message))
-        if (len(self.tablets) >= self.number_of_tablets):
+        while not self.finished_register:
+            pass
+        if len(self.tablets) >= self.number_of_tablets:
             # TODO: Check, but do not need in current scenario
             # print("two tablets are registered")
             # for key,value in self.tablets_ips.viewitems():
@@ -487,6 +515,7 @@ class ManagerNode():
             #     message = {'action':'registration_complete','client_ip':client_ip}
             #     self.tablet_publisher.publish(json.dumps(message))
             #time.sleep(2)
+            self.finished_register = False
             self.run_study_timer = Timer(5.0, self.run_generic_script())
         print("finish register_tablet")
 
@@ -512,6 +541,8 @@ class ManagerNode():
             # rospy.loginfo(message)
             # self.tablet_publisher.publish(message)
             # self.nao.parse_message(message)
+        elif 'register tablet' in data.data:
+            self.finished_register = True
 
 
     def start(self, info, lecture_number='1'):
@@ -531,6 +562,8 @@ class ManagerNode():
             }
             ]
         self.number_of_tablets = len(self.devices)
+        self.number_of_tablets_done = self.number_of_tablets
+
 
         # set the first section to be the first section
         r = requests.post('http://localhost/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
@@ -557,7 +590,6 @@ class ManagerNode():
             # except:
             #     print('ERROR: please enter a correct username: group_id, tablet_id. ', d['user_name'])
 
-    # TODO: main function to change
     def callback_to_manager(self, data):
         print("start manager callback_to_manager", data.data)
         if 'start the study' in data.data:
@@ -566,13 +598,13 @@ class ManagerNode():
 
         data_json = json.loads(data.data)
         action = data_json['action']
-        if (action == 'register_tablet'):
+        if action == 'register_tablet':
             self.register_tablet(data_json['parameters'],
                                  data_json['client_ip'])
             # {'action': 'play_audio_file', 'parameters': ['/home/nao/naoqi/sounds/dyslexia/s_w15_m7.wav']}
-        elif action == 'participant_done':
-            self.participant_done(data_json)
-        elif ("agree" in action):
+        # elif action == 'participant_done':
+        #     self.participant_done(data_json)
+        elif "agree" in action:
             pass
         else:
             print('else', data.data)
@@ -580,7 +612,11 @@ class ManagerNode():
         print ("finish manager callback_to_manager")
 
     def participant_done(self, data_json):
-        print(self.tablets_ids)
+        self.log_publisher.publish(json.dumps({
+            'log': 'participant_done',
+            'data': data_json
+        }))
+        print('participant_done', self.tablets_ids)
         print(data_json)
         client_ip = int(data_json['client_ip'])
         tablet_id = self.tablets_ids[client_ip]
@@ -589,17 +625,18 @@ class ManagerNode():
         self.tablets_mark[tablet_id] = data_json['answer']
         print(self.tablets_done.values())
         for value in self.tablets_done.values():
-            if value == True:
+            if value:
                 self.count_done += 1
         print(self.count_done, self.number_of_tablets_done)
-        if (self.count_done == self.number_of_tablets_done):
+        if self.count_done == self.number_of_tablets_done:
             try:
                 self.sleep_timer.cancel()
                 print("self.sleep_timer.cancel()")
             except:
                 print("failed self.sleep_timer_cancel")
             self.count_done = 0
-            self.run_study_action(self.actions[self.robot_end_signal['done']])
+            self.tablets_done = {}
+            threading.Thread(target=self.run_study_action, args=[self.actions[self.robot_end_signal['done']]]).start()
         print("audience_done")
         # self.audience_done(data_json['parameters']['tablet_id'], data_json['parameters']['subject_id'],
         #                   data_json['client_ip'])
@@ -781,6 +818,7 @@ class ManagerNode():
     # based on tablet_marks, find a pair that disagrees
 
     def find_disagree(self):
+        print('find_disagree', self.tablets_mark)
         # check if same, find two that are not
         tablet_pairs = []
         for t_id_1 in self.tablets_mark.keys():
