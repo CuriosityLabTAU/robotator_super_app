@@ -48,7 +48,7 @@ class TabletNode():
         rospy.init_node('tablet_node')
         rospy.Subscriber('to_tablet', String, self.callback)
 
-        self.publisher = rospy.Publisher('tablet_to_manager', String, queue_size=10)
+        self.publisher = rospy.Publisher('tablet_to_manager', String, queue_size=1)
 
         self.devices = []
 
@@ -117,44 +117,61 @@ class TabletNode():
             except:
                 print('ERROR: please enter a correct username: group_id, tablet_id. ', d['user_name'])
 
+    def get_current_answers(self):
+        all_answers = requests.get('http://localhost/apilocaladmin/api/v1/lecture/%s/answers' %
+                                   self.current_lecture['uuid']).json()
+        current_answers = [a['answers'] for a in all_answers if a['uuid'] == self.current_section][0]
+        tablet_answers = {}
+        for ca in current_answers:
+            tablet_answers[ca['device_id']] = ca
+        return tablet_answers
+
     def callback(self, data):
         if 'start' in data.data:
             self.start(data.data[-1])
             return
+        for d in self.devices:
+            r = requests.get('http://localhost/apilocaladmin/api/v1/device/%s/freezeStatus' % d['id'])
+            print('freeze status', d['id'], r, r.text)
+        r = requests.post('http://localhost/apilocaladmin/api/v1/admin/defreezeDeviceAll')
+        for d in self.devices:
+            r = requests.post('http://localhost/apilocaladmin/api/v1/device/%s/toggleFrozen' % d['id'])
+        for d in self.devices:
+            r = requests.get('http://localhost/apilocaladmin/api/v1/device/%s/freezeStatus' % d['id'])
+            print('freeze status', d['id'], r, r.text)
 
         print('====', 'tablet_node', data.data)
         info = json.loads(data.data)
-        the_section = info['screen_name']
+        self.current_section = info['screen_name']
         the_tablet = info['client_ip']
 
-        self.current_section = '' # TODO
         current_section_order = 0
         # TODO: show section
         r = requests.post('http://localhost/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
             'lectureUUID': self.current_lecture['uuid'],
-            'sectionUUID': the_section
+            'sectionUUID': self.current_section
         })
+
 
         if info['response']:
             duration = info['duration']
 
-            current_answers = requests.get('http://localhost/apilocaladmin/api/v1/lecture/%s/answers' %
-                                           self.current_lecture['uuid']).json()[current_section_order]['answers']
+            current_answers = self.get_current_answers()
 
             # if the section requires response, if someone answered, publish it, until all answered or time passes
             start_time = time.time()
             while (time.time() - start_time) < duration:
-                new_answers = requests.get(
-                    'http://localhost/apilocaladmin/api/v1/lecture/%s/answers' % self.current_lecture['uuid']).json()[
-                    current_section_order]['answers']
-                for i_answer, answer in enumerate(new_answers):
+                new_answers = self.get_current_answers()
+
+                for i_answer, answer in new_answers.items():
                     if current_answers[i_answer]['answered'] == 0 and new_answers[i_answer]['answered'] == 1:
                         # means that the tablet has answered
                         done_message = {'action': 'participant_done',
-                                        'client_ip': answer['id'],
-                                        'the_answer': answer['answer']
+                                        'client_ip': answer['device_id'],
+                                        'answer': answer['answer']
                                         }
                         self.publisher.publish(json.dumps(done_message))
+                        print('published:', done_message)
                 time.sleep(0.1)
                 current_answers = copy.copy(new_answers)
 

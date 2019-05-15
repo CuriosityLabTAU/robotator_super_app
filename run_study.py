@@ -9,7 +9,7 @@ from run_condition import *
 lecture_number = 1
 
 
-def intro(group_id=0, nao_ip='192.168.0.103'):
+def intro(group_id=0, nao_ip='192.168.0.101'):
     start_working(group_id, nao_ip)
 
     time.sleep(60)

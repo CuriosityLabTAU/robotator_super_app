@@ -129,8 +129,12 @@ for s, section in enumerate(ordered_sections):
     part['screen_name'] = section['uuid']
     if 'questionType' in value:
         part['activity_type'] = value['questionType']
-        part['duration'] = 0 # TODO
-        part['response'] = 0 # TODO
+        part['duration'] = int(value['timeLimit'])
+        part['response'] = 1 # TODO
+    elif 'canRespond' in value:
+        if value['canRespond']:
+            part['response'] = 1
+            part['duration'] = int(value['timeLimit'])
 
     # robot speech is only if there are notes
     if section['notes']:

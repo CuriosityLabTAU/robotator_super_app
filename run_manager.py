@@ -83,8 +83,6 @@ class ManagerNode():
             self.tablets_audience_agree[i]= None
             i += 1
 
-        print(self.tablets_audience_agree)
-
         self.tablets = {}
 
         self.robot_end_signal = {}
@@ -134,7 +132,8 @@ class ManagerNode():
     #     #self.run_robot_behavior(action6)
 
     def run_generic_script(self):
-        print("run_study")
+        print("run_study with tablets: ", self.tablets_ids)
+
         data_file = open('flow_files/%s.json' % self.session['name'])
         study_sequence = json.load(data_file)
         # self.poses_conditions = logics_json['conditions']
@@ -142,7 +141,9 @@ class ManagerNode():
         self.actions = {}
 
         for seq in study_sequence:
-            self.actions[seq['tag']] = seq
+            if 'tablets' in seq:
+                seq['tablets'] = [i+1 for i in range(self.number_of_tablets)]
+            self.actions[seq['tag']] = copy.copy(seq)
 
         self.run_study_action(self.actions['start'])
 
@@ -159,6 +160,7 @@ class ManagerNode():
                         client_ip = self.tablets_ips[str(tablet_id)] #TODO: check
                         message = action
                         message['client_ip'] = client_ip
+                        message['section_uuid'] = action['screen_name']
                         self.tablet_publisher.publish(json.dumps(message))
 
                         # clear the previous answers
@@ -167,6 +169,7 @@ class ManagerNode():
                     except:
                         print('not enough tablets')
             next_action = self.actions[action['next']]
+            time.sleep(0.2)
             self.run_study_action(next_action)
 
         elif action['target'] == 'robot':
@@ -265,28 +268,28 @@ class ManagerNode():
         for k, v in action["end"].items():
             self.robot_end_signal[k] = v
 
-        print('==== Participants Status =====')
-        print(self.engagement)
-        print(self.current_speaker)
-
-        # TODO: look at person speaks + person least engaged
-        least_engaged = sorted(self.engagement.items(), key=lambda kv: kv[1])
-        print('robot_sleep', least_engaged)
-        if len(least_engaged) > 0:
-            least_engaged = least_engaged[0]
-            if least_engaged[1] < 30.0: # not engaged
-                self.robot_publisher.publish(json.dumps({
-                    "action": 'run_behavior',
-                    "parameters": ['Engage_%d' % least_engaged[0]]
-                }))
-                time.sleep(5)
-
-        while self.is_sleeping:
-            self.robot_publisher.publish(json.dumps({
-                "action": 'run_behavior',
-                "parameters": ['Engage_%d' % self.current_speaker]
-            }))
-            time.sleep(1)
+        # Look at person speaks + person least engaged
+        # print('==== Participants Status =====')
+        # print(self.engagement)
+        # print(self.current_speaker)
+        #
+        # least_engaged = sorted(self.engagement.items(), key=lambda kv: kv[1])
+        # print('robot_sleep', least_engaged)
+        # if len(least_engaged) > 0:
+        #     least_engaged = least_engaged[0]
+        #     if least_engaged[1] < 30.0: # not engaged
+        #         self.robot_publisher.publish(json.dumps({
+        #             "action": 'run_behavior',
+        #             "parameters": ['Engage_%d' % least_engaged[0]]
+        #         }))
+        #         time.sleep(5)
+        #
+        # while self.is_sleeping:
+        #     self.robot_publisher.publish(json.dumps({
+        #         "action": 'run_behavior',
+        #         "parameters": ['Engage_%d' % self.current_speaker]
+        #     }))
+        #     time.sleep(1)
 
     def robot_resolution(self, action):
         self.is_sleeping = False
@@ -323,12 +326,17 @@ class ManagerNode():
                     best_unspoken = unspoken
                     best_pair = copy.copy(p)
             # run the appropriate behavior
+            self.robot_publisher.publish(json.dumps({"action": 'play_audio_file',
+                                                     "parameters": [robot_path + 'Two_explain.wav']}))
+
             parameters = ['address_pair_%d_%d' % (best_pair[0], best_pair[1])]
         else:
             # address person who spoke least
             # TODO explain is not here
-            # parameters = ['explain_%d' % most_unspoken]
-            parameters = ['address_pair_1_2']
+            # parameters = ['Explain_%d' % most_unspoken]
+            self.robot_publisher.publish(json.dumps({"action": 'play_audio_file',
+                                                     "parameters": [robot_path + 'Explain.wav']}))
+            parameters = ['Engage_%d' % most_unspoken]
 
         nao_message = {"action": 'run_behavior',
                        "parameters": parameters}
@@ -452,14 +460,18 @@ class ManagerNode():
                                  data_json['client_ip'])
             # {'action': 'play_audio_file', 'parameters': ['/home/nao/naoqi/sounds/dyslexia/s_w15_m7.wav']}
         elif action == 'participant_done':
-            client_ip = data_json['client_ip']
+            print(self.tablets_ids)
+            print(data_json)
+            client_ip = int(data_json['client_ip'])
             tablet_id = self.tablets_ids[client_ip]
             self.count_done = 0
             self.tablets_done[tablet_id] = True
             self.tablets_mark[tablet_id] = data_json['answer']
+            print(self.tablets_done.values())
             for value in self.tablets_done.values():
                 if value == True:
                     self.count_done += 1
+            print(self.count_done, self.number_of_tablets_done)
             if (self.count_done == self.number_of_tablets_done):
                 try:
                     self.sleep_timer.cancel()
