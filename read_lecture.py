@@ -4,9 +4,9 @@ import json
 import copy
 
 the_path = 'lecture_files/'
-the_lecture_hash = '60aa4b40-765d-11e9-b4b4-cf18aea23797'
+# the_lecture_hash = '60aa4b40-765d-11e9-b4b4-cf18aea23797'
 # the_lecture_hash = 'eff1b350-7640-11e9-b4b4-cf18aea23797'
-# the_lecture_hash = 'f6782e00-7660-11e9-b4b4-cf18aea23797'
+the_lecture_hash = 'f6782e00-7660-11e9-b4b4-cf18aea23797'
 
 the_file = the_lecture_hash + '/' + the_lecture_hash + '.json'
 lecture = json.load(open(the_path + the_file))

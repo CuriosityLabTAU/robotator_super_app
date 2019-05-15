@@ -8,6 +8,7 @@ import random
 import operator
 import copy
 from run_condition import *
+import requests
 
 robot_path = '/home/nao/naoqi/sounds/HCI/'
 the_lecture_flow_json_file = 'flow_files/"robotator_study.json"'
@@ -51,26 +52,26 @@ class ManagerNode():
 
     def __init__(self):
         print("init run_manager")
+        rospy.init_node('manager_node') #init a listener:
 
         # connection to robot
         # msg:
         #   'play_audio_file', '*.wav' --> animated speech
-        self.robot_publisher = rospy.Publisher('to_nao', String, queue_size=10)
+        self.robot_publisher = rospy.Publisher('to_nao', String, queue_size=1)
 
         # connection to tablet
         # msg structure: action, 'client_ip'
-        self.tablet_publisher = rospy.Publisher('to_tablet', String, queue_size=10)
+        self.tablet_publisher = rospy.Publisher('to_tablet', String, queue_size=1, latch=True, )
 
         self.sensor_publisher = rospy.Publisher("/send_msg", String, queue_size=1)
 
-        self.log_publisher = rospy.Publisher('log', String, queue_size=10)
+        self.log_publisher = rospy.Publisher('log', String, queue_size=1)
 
-        rospy.init_node('manager_node') #init a listener:
-        rospy.Subscriber('nao_state', String, self.callback_nao_state)
-        rospy.Subscriber('tablet_to_manager', String, self.callback_to_manager) # TODO: this is the main function to change
-        rospy.Subscriber('conc_speaker', String, self.callback_sensor)
-        rospy.Subscriber('send_data', String, self.callback_engage)
-        rospy.Subscriber('send_speaker_data', String, self.callback_speak)
+        rospy.Subscriber('nao_state', String, self.callback_nao_state, queue_size=1)
+        rospy.Subscriber('tablet_to_manager', String, self.callback_to_manager, queue_size=1)
+        rospy.Subscriber('conc_speaker', String, self.callback_sensor, queue_size=1)
+        rospy.Subscriber('send_data', String, self.callback_engage, queue_size=1)
+        rospy.Subscriber('send_speaker_data', String, self.callback_speak, queue_size=1)
         # rospy.Subscriber('log', String, self.callback_log)
         self.waiting = False
         self.waiting_timer = False
@@ -104,6 +105,20 @@ class ManagerNode():
 
         # the flow variables
         self.actions = None
+
+        # tablet and server initializations
+        self.devices = []
+
+        self.current_lecture = None
+        if database:
+            # LECTURES
+            self.lectures = requests.get('http://localhost/apilocaladmin/api/v1/admin/lectures').json()
+            for lecture in self.lectures:
+                res = requests.put('http://localhost/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid'])
+                print(lecture['name'], res)
+                if lecture['name'] == 'HCI_1':
+                    self.current_lecture = lecture
+                    self.first_section = json.loads(self.current_lecture['sectionsOrdering'])[0]
 
         rospy.spin() #spin() simply keeps python from exiting until this node is stopped
 
@@ -155,21 +170,26 @@ class ManagerNode():
         print(action['tag'], action)
         if action['target'] == 'tablet':
             if "tablets" in action:
-                for tablet_id in action['tablets']:
-                    try:
-                        client_ip = self.tablets_ips[str(tablet_id)] #TODO: check
-                        message = action
-                        message['client_ip'] = client_ip
-                        message['section_uuid'] = action['screen_name']
-                        self.tablet_publisher.publish(json.dumps(message))
+                message = action
+                message['section_uuid'] = action['screen_name']
+                # self.tablet_publisher.publish(json.dumps(message))
+                threading.Thread(target=self.tablet_actions, args=[message]).start()
 
-                        # clear the previous answers
-                        # important for collecting the answers that are given
-                        self.tablets_mark = {}
-                    except:
-                        print('not enough tablets')
+                # for tablet_id in action['tablets']:
+                #     try:
+                #         client_ip = self.tablets_ips[str(tablet_id)] #TODO: check
+                #         message = action
+                #         message['client_ip'] = client_ip
+                #         message['section_uuid'] = action['screen_name']
+                #         self.tablet_publisher.publish(json.dumps(message))
+                #
+                #         # clear the previous answers
+                #         # important for collecting the answers that are given
+                #         self.tablets_mark = {}
+                #     except:
+                #         print('not enough tablets')
             next_action = self.actions[action['next']]
-            time.sleep(0.2)
+            print('from show screen to ...', next_action)
             self.run_study_action(next_action)
 
         elif action['target'] == 'robot':
@@ -215,6 +235,46 @@ class ManagerNode():
             elif "wake_up" in action["action"]:
                 self.robot_wakeup(action)
 
+    def get_current_answers(self):
+        all_answers = requests.get('http://localhost/apilocaladmin/api/v1/lecture/%s/answers' %
+                                   self.current_lecture['uuid']).json()
+        current_answers = [a['answers'] for a in all_answers if a['uuid'] == self.current_section][0]
+        tablet_answers = {}
+        for ca in current_answers:
+            tablet_answers[ca['device_id']] = ca
+        return tablet_answers
+
+    def tablet_actions(self, info):
+        self.current_section = info['screen_name']
+
+        r = requests.post('http://localhost/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
+            'lectureUUID': self.current_lecture['uuid'],
+            'sectionUUID': self.current_section
+        })
+
+        if info['response']:
+            duration = info['duration']
+
+            current_answers = self.get_current_answers()
+
+            # if the section requires response, if someone answered, publish it, until all answered or time passes
+            start_time = time.time()
+            while (time.time() - start_time) < duration:
+                new_answers = self.get_current_answers()
+
+                for i_answer, answer in new_answers.items():
+                    if current_answers[i_answer]['answered'] == 0 and new_answers[i_answer]['answered'] == 1:
+                        # means that the tablet has answered
+                        done_message = {'action': 'participant_done',
+                                        'client_ip': answer['device_id'],
+                                        'answer': answer['answer']
+                                        }
+                        self.participant_done(done_message)
+                        # self.publisher.publish(json.dumps(done_message))
+                        print('published:', done_message)
+                time.sleep(0.1)
+                current_answers = copy.copy(new_answers)
+
     def robot_animated_text_to_speech(self, action):
         self.is_sleeping = False
         nao_message = {"action": action['action'],
@@ -236,6 +296,7 @@ class ManagerNode():
         self.run_study_action(next_action)
 
     def robot_play_audio_file(self, action):
+        print('play audio action', action)
         self.is_sleeping = False
         # go over parameters and add robot_path
         for i, p in enumerate(action['parameters']):
@@ -244,11 +305,15 @@ class ManagerNode():
                 if "audio" in action["action"]:
                     action['parameters'][i] += ".wav"
 
+        if 'wav.wav' in action['parameters']:
+            print('ERROR:', action)
+            return
         # send message to robot and wait for reply (from another thread)
         nao_message = {"action": action['action'],
                        "parameters": action['parameters']}
         self.robot_end_signal = {action['parameters'][0]: False}
         self.robot_publisher.publish(json.dumps(nao_message))
+        time.sleep(1)
         if is_robot:
             while not self.robot_end_signal[action['parameters'][0]]:
                 pass
@@ -449,10 +514,56 @@ class ManagerNode():
             # self.nao.parse_message(message)
 
 
+    def start(self, info, lecture_number='1'):
+        for lecture in self.lectures:
+            if lecture['name'] == 'HCI_%s' % lecture_number:
+                self.current_lecture = lecture
+        self.first_section = json.loads(self.current_lecture['sectionsOrdering'])[0]
+
+        if database:
+            # DEVICES
+            print('----- devices -----')
+            self.devices = requests.get('http://localhost/apilocaladmin/api/v1/device/getAll').json()
+        else:
+            self.devices = [{
+                'id': 1,
+                'user_name': '1,1'
+            }
+            ]
+        self.number_of_tablets = len(self.devices)
+
+        # set the first section to be the first section
+        r = requests.post('http://localhost/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
+            'lectureUUID': self.current_lecture['uuid'],
+            'sectionUUID': self.first_section
+        })
+        print('tablet_node', 'switch to first section', r, r.text)
+
+        # register all tablets
+        for d in self.devices:
+            # try:
+            d_info = d['user_name'].split(',')
+            group_id = d_info[0]
+            tablet_id = d_info[1]
+            self.register_tablet({
+                                  'session': self.current_lecture,
+                                  'tablet_id': tablet_id,
+                                  'group_id': group_id,
+                                  'condition': 'robot'
+                              },
+                                 d['id'])
+            print('tablet_node: published tablet ', d['user_name'])
+            time.sleep(1)
+            # except:
+            #     print('ERROR: please enter a correct username: group_id, tablet_id. ', d['user_name'])
 
     # TODO: main function to change
     def callback_to_manager(self, data):
         print("start manager callback_to_manager", data.data)
+        if 'start the study' in data.data:
+            self.start(data.data, lecture_number=data.data[-1])
+            return
+
         data_json = json.loads(data.data)
         action = data_json['action']
         if (action == 'register_tablet'):
@@ -460,35 +571,38 @@ class ManagerNode():
                                  data_json['client_ip'])
             # {'action': 'play_audio_file', 'parameters': ['/home/nao/naoqi/sounds/dyslexia/s_w15_m7.wav']}
         elif action == 'participant_done':
-            print(self.tablets_ids)
-            print(data_json)
-            client_ip = int(data_json['client_ip'])
-            tablet_id = self.tablets_ids[client_ip]
-            self.count_done = 0
-            self.tablets_done[tablet_id] = True
-            self.tablets_mark[tablet_id] = data_json['answer']
-            print(self.tablets_done.values())
-            for value in self.tablets_done.values():
-                if value == True:
-                    self.count_done += 1
-            print(self.count_done, self.number_of_tablets_done)
-            if (self.count_done == self.number_of_tablets_done):
-                try:
-                    self.sleep_timer.cancel()
-                    print("self.sleep_timer.cancel()")
-                except:
-                    print("failed self.sleep_timer_cancel")
-                self.count_done = 0
-                self.run_study_action(self.actions[self.robot_end_signal['done']])
-            print("audience_done")
-            #self.audience_done(data_json['parameters']['tablet_id'], data_json['parameters']['subject_id'],
-            #                   data_json['client_ip'])
+            self.participant_done(data_json)
         elif ("agree" in action):
             pass
         else:
             print('else', data.data)
             self.robot_publisher.publish(data.data)
         print ("finish manager callback_to_manager")
+
+    def participant_done(self, data_json):
+        print(self.tablets_ids)
+        print(data_json)
+        client_ip = int(data_json['client_ip'])
+        tablet_id = self.tablets_ids[client_ip]
+        self.count_done = 0
+        self.tablets_done[tablet_id] = True
+        self.tablets_mark[tablet_id] = data_json['answer']
+        print(self.tablets_done.values())
+        for value in self.tablets_done.values():
+            if value == True:
+                self.count_done += 1
+        print(self.count_done, self.number_of_tablets_done)
+        if (self.count_done == self.number_of_tablets_done):
+            try:
+                self.sleep_timer.cancel()
+                print("self.sleep_timer.cancel()")
+            except:
+                print("failed self.sleep_timer_cancel")
+            self.count_done = 0
+            self.run_study_action(self.actions[self.robot_end_signal['done']])
+        print("audience_done")
+        # self.audience_done(data_json['parameters']['tablet_id'], data_json['parameters']['subject_id'],
+        #                   data_json['client_ip'])
 
     def pos_to_tablet(self, speaker_info):
         # convert the position from the directional microphone, to tablet id, via the calibration file

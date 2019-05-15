@@ -36,7 +36,7 @@ def start_working(group_id, nao_ip):
         os.system('python tablet_node.py')
 
     def worker12():
-        os.system('rostopic pub -1 /to_tablet std_msgs/String "start %s"' % lecture_number)
+        os.system('rostopic pub -1 /tablet_to_manager std_msgs/String "start the study %s"' % lecture_number)
 
 
     if is_robot:
@@ -53,9 +53,9 @@ def start_working(group_id, nao_ip):
     t10.start()
     threading._sleep(0.5)
 
-    t11 = threading.Thread(target=worker11)
-    t11.start()
-    threading._sleep(0.5)
+    # t11 = threading.Thread(target=worker11)
+    # t11.start()
+    # threading._sleep(0.5)
 
     lecture_number = raw_input('Press any key to start ...')
 

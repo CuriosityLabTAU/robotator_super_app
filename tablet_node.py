@@ -46,15 +46,13 @@ class TabletNode():
         print("init server_node")
 
         rospy.init_node('tablet_node')
-        rospy.Subscriber('to_tablet', String, self.callback)
+        rospy.Subscriber('to_tablet', String, self.callback, queue_size=1)
 
         self.publisher = rospy.Publisher('tablet_to_manager', String, queue_size=1)
 
         self.devices = []
 
         self.current_lecture = None
-
-        self.current_lecture = ''  # TODO: get it somehow
         if database:
             # LECTURES
             self.lectures = requests.get('http://localhost/apilocaladmin/api/v1/admin/lectures').json()
@@ -63,7 +61,7 @@ class TabletNode():
                 print(lecture['name'], res)
                 if lecture['name'] == 'HCI_1':
                     self.current_lecture = lecture
-            self.first_section = json.loads(self.current_lecture['sectionsOrdering'])[0]
+                    self.first_section = json.loads(self.current_lecture['sectionsOrdering'])[0]
         rospy.spin()
 
     def start(self, lecture_number='1'):
@@ -127,9 +125,11 @@ class TabletNode():
         return tablet_answers
 
     def callback(self, data):
+        print('tablet_node, callback', data.data)
         if 'start' in data.data:
             self.start(data.data[-1])
             return
+
         for d in self.devices:
             r = requests.get('http://localhost/apilocaladmin/api/v1/device/%s/freezeStatus' % d['id'])
             print('freeze status', d['id'], r, r.text)
@@ -138,20 +138,16 @@ class TabletNode():
             r = requests.post('http://localhost/apilocaladmin/api/v1/device/%s/toggleFrozen' % d['id'])
         for d in self.devices:
             r = requests.get('http://localhost/apilocaladmin/api/v1/device/%s/freezeStatus' % d['id'])
-            print('freeze status', d['id'], r, r.text)
+        #     print('freeze status', d['id'], r, r.text)
 
         print('====', 'tablet_node', data.data)
         info = json.loads(data.data)
         self.current_section = info['screen_name']
-        the_tablet = info['client_ip']
 
-        current_section_order = 0
-        # TODO: show section
         r = requests.post('http://localhost/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
             'lectureUUID': self.current_lecture['uuid'],
             'sectionUUID': self.current_section
         })
-
 
         if info['response']:
             duration = info['duration']
