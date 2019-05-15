@@ -4,8 +4,7 @@ from std_msgs.msg import String
 import requests
 import time
 import copy
-
-database = True
+from run_condition import *
 
 
 class TabletNode():
@@ -43,7 +42,7 @@ class TabletNode():
 
     sensor_speak = {}
 
-    def __init__(self):
+    def __init__(self, lecture_number=1):
         print("init server_node")
 
         rospy.init_node('tablet_node')
@@ -58,16 +57,21 @@ class TabletNode():
         self.current_lecture = ''  # TODO: get it somehow
         if database:
             # LECTURES
-            lectures = requests.get('http://localhost/apilocaladmin/api/v1/admin/lectures').json()
-            for lecture in lectures:
+            self.lectures = requests.get('http://localhost/apilocaladmin/api/v1/admin/lectures').json()
+            for lecture in self.lectures:
                 res = requests.put('http://localhost/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid'])
                 print(lecture['name'], res)
-                if lecture['name'] == 'lecture_2':
+                if lecture['name'] == 'HCI_1':
                     self.current_lecture = lecture
             self.first_section = json.loads(self.current_lecture['sectionsOrdering'])[0]
         rospy.spin()
 
-    def start(self):
+    def start(self, lecture_number='1'):
+        for lecture in self.lectures:
+            if lecture['name'] == 'HCI_%s' % lecture_number:
+                self.current_lecture = lecture
+        self.first_section = json.loads(self.current_lecture['sectionsOrdering'])[0]
+
         if database:
             # DEVICES
             print('----- devices -----')
@@ -114,8 +118,8 @@ class TabletNode():
                 print('ERROR: please enter a correct username: group_id, tablet_id. ', d['user_name'])
 
     def callback(self, data):
-        if data.data == 'start':
-            self.start()
+        if 'start' in data.data:
+            self.start(data.data[-1])
             return
 
         print('====', 'tablet_node', data.data)

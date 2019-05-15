@@ -7,17 +7,16 @@ import threading
 import random
 import operator
 import copy
+from run_condition import *
 
 robot_path = '/home/nao/naoqi/sounds/HCI/'
 the_lecture_flow_json_file = 'flow_files/"robotator_study.json"'
 
-is_robot = True
-is_sensor = False
 
 
 class ManagerNode():
 
-    number_of_tablets = 2
+    number_of_tablets = 1
     tablets = {}    #in the form of {tablet_id_1:{"subject_id":subject_id, "tablet_ip";tablet_ip}
                                     #,tablet_id_2:{"subject_id":subject_id, "tablet_ip";tablet_ip}
 
@@ -77,7 +76,7 @@ class ManagerNode():
         self.waiting_timer = False
         self.waiting_robot = False
 
-        self.session = {'name': 'lecture_2'}
+        self.session = {'name': 'HCI_1'}
 
         i=1
         while i <= self.number_of_tablets:
@@ -426,7 +425,7 @@ class ManagerNode():
     def callback_nao_state(self, data):
         # get messages back from the robot
         # the only thing here is the end of a behavior/audio
-        print("manager callback_nao_state", data.data, self.waiting_robot)
+        # print("manager callback_nao_state", data.data, self.waiting_robot)
         if 'register tablet' not in data.data and 'sound_tracker' not in data.data:
             self.waiting = False
             self.waiting_robot = False

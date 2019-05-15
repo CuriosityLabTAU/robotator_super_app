@@ -4,7 +4,11 @@ import json
 import copy
 
 the_path = 'lecture_files/'
-the_file = 'd05475f0-75b4-11e9-a424-f103c79ae4da_2.json'
+the_lecture_hash = '60aa4b40-765d-11e9-b4b4-cf18aea23797'
+# the_lecture_hash = 'eff1b350-7640-11e9-b4b4-cf18aea23797'
+# the_lecture_hash = 'f6782e00-7660-11e9-b4b4-cf18aea23797'
+
+the_file = the_lecture_hash + '/' + the_lecture_hash + '.json'
 lecture = json.load(open(the_path + the_file))
 # convert lecture json to activity json
 
@@ -30,7 +34,7 @@ def generate_text_for_speech(lecture_):
     for s, section_ in enumerate(lecture['sections']):
         if section_['notes']:
             f = open('speech_files/section_%s.txt' % section_['name'], 'w+')
-            f.write(section_['notes'])
+            f.write(section_['notes'].encode('utf-8'))
             f.close()
 
 generate_text_for_speech(lecture)
@@ -95,17 +99,22 @@ base_tablet_action = {
 }
 
 # study_flow
+ordered_sections = []
+for s, section_uuid in enumerate(json.loads(lecture['sectionsOrdering'])):
+    section = [sec for sec in lecture['sections'] if sec['uuid'] == section_uuid][0]
+    ordered_sections.append(copy.copy(section))
+
 
 study_flow = [{
       "tag": "start", "target": "robot",
       "action":"wake_up",
-      "next": 'section_%s_show_screen' % lecture['sections'][1]['name']
+      "next": 'section_%s_show_screen' % ordered_sections[0]['name']
     }
 ]
 print(lecture)
-for s, section in enumerate(lecture['sections']):
-    if s == 0:
-        continue
+print(lecture['sectionsOrdering'])
+for s, section in enumerate(ordered_sections):
+    print(section['uuid'])
     # Every section is composed of:
     # - a new tablet screen
     # - robot says something
@@ -133,18 +142,29 @@ for s, section in enumerate(lecture['sections']):
                 part = copy.copy(base_robot_animated_text)
                 part['parameters'] = [section['notes']]
             else:
-                part['parameters'] = ['section_%s' % section['name']]
                 part = copy.copy(base_robot_action)
+                part['parameters'] = ['section_%s' % section['name']]
             part['tag'] = parts[-1]['next']
 
     if s < len(lecture['sections']) - 1:
-        the_next_part = 'section_%s_show_screen' % lecture['sections'][s + 1]['name']
+        the_next_part = 'section_%s_show_screen' % ordered_sections[s + 1]['name']
     else:
         the_next_part = 'end'
 
-    if section['key'] not in ['image']:
+    section_value = json.loads(section['value'])
+    student_respond = False
+    if 'canRespond' in section_value:
+        student_respond = section_value['canRespond']
+    elif section['key'] in ['quiz', 'imageQuestion']:
+        student_respond = True
+
+    if student_respond:
         part['next'] = 'section_%s_robot_sleep' % section['name']
         parts.append(copy.copy(part))
+
+        after_response = 'section_%s_robot_resolution' % section['name']
+        if 'text' in section['key']:
+            after_response = the_next_part
 
         part = copy.copy(base_robot_sleep)
         part['tag'] = parts[-1]['next']
@@ -152,8 +172,8 @@ for s, section in enumerate(lecture['sections']):
             if int(value['timeLimit']) < 30: # too short for a reminder
                 part['seconds'] = int(value['timeLimit'])
                 part['end'] = {
-                    'timeout': 'section_%s_robot_resolution' % section['name'],
-                    'done': 'section_%s_robot_resolution' % section['name']
+                    'timeout': after_response,
+                    'done': after_response
                 }
                 part['next'] = part['tag']
                 parts.append(copy.copy(part))
@@ -162,7 +182,7 @@ for s, section in enumerate(lecture['sections']):
                 part['seconds'] = int(value['timeLimit']) - 30
                 part['end'] = {
                     'timeout': 'robot_30sec_%s' % part['tag'],
-                    'done': 'section_%s_robot_resolution' % section['name']
+                    'done': after_response
                 }
                 part['next'] = part['tag']
                 parts.append(copy.copy(part))
@@ -179,10 +199,10 @@ for s, section in enumerate(lecture['sections']):
                 part['tag'] = 'section_%s_robot_sleep_30' % section['name']
                 part['seconds'] = 30
                 part['end'] = {
-                    'timeout': 'section_%s_robot_resolution' % section['name'],
-                    'done': 'section_%s_robot_resolution' % section['name']
+                    'timeout': after_response,
+                    'done': after_response
                 }
-                part['next'] = 'section_%s_robot_resolution' % section['name']
+                part['next'] = after_response
                 parts.append(copy.copy(part))
         else:
             part['second'] = -1 # TODO: check

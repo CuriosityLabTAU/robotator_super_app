@@ -3,6 +3,10 @@ import threading
 import time
 import sys
 import subprocess
+from run_condition import *
+
+
+lecture_number = 1
 
 
 def intro(group_id=0, nao_ip='192.168.0.103'):
@@ -32,12 +36,13 @@ def start_working(group_id, nao_ip):
         os.system('python tablet_node.py')
 
     def worker12():
-        os.system('rostopic pub -1 /to_tablet std_msgs/String "start"')
+        os.system('rostopic pub -1 /to_tablet std_msgs/String "start %s"' % lecture_number)
 
 
-    t1 = threading.Thread(target=worker1)
-    t1.start()
-    threading._sleep(2.5)
+    if is_robot:
+        t1 = threading.Thread(target=worker1)
+        t1.start()
+        threading._sleep(2.5)
 
     # # running in cmd, because of many outputs!
     # t2 = threading.Thread(target=worker2)
@@ -52,7 +57,7 @@ def start_working(group_id, nao_ip):
     t11.start()
     threading._sleep(0.5)
 
-    raw_input('Press any key to start ...')
+    lecture_number = raw_input('Press any key to start ...')
 
     t12 = threading.Thread(target=worker12)
     t12.start()
