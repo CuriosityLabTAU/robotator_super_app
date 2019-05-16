@@ -482,11 +482,11 @@ class ManagerNode():
             print('WRONG CONDITION')
             return
 
-        self.tablets[parameters['tablet_id']] = {'subject_id': parameters['group_id'], 'tablet_ip':client_ip}
-        self.tablets_subjects_ids[parameters['tablet_id']] = parameters['group_id']
-        self.tablets_ips[parameters['tablet_id']] = client_ip
-        self.tablets_ids[client_ip] = parameters['tablet_id']
-        self.tablets_audience_done[parameters['tablet_id']] = False
+        self.tablets[parameters['device_id']] = {'subject_id': parameters['group_id'], 'tablet_ip':client_ip}
+        self.tablets_subjects_ids[parameters['device_id']] = parameters['group_id']
+        self.tablets_ips[parameters['device_id']] = client_ip
+        self.tablets_ids[client_ip] = parameters['device_id']
+        self.tablets_audience_done[parameters['device_id']] = False
         if parameters['session']:
             self.session = parameters['session']
 
@@ -554,6 +554,7 @@ class ManagerNode():
             ]
         self.number_of_tablets = len(self.devices)
         self.number_of_tablets_done = self.number_of_tablets
+        print(self.devices)
 
 
         # set the first section to be the first section
@@ -573,7 +574,8 @@ class ManagerNode():
                                   'session': self.current_lecture,
                                   'tablet_id': tablet_id,
                                   'group_id': group_id,
-                                  'condition': 'robot'
+                                  'condition': 'robot',
+                                  'device_id': d['id']
                               },
                                  d['id'])
             print('tablet_node: published tablet ', d['user_name'])
@@ -606,10 +608,10 @@ class ManagerNode():
         print('participant_done', self.tablets_ids)
         print(data_json)
         client_ip = int(data_json['client_ip'])
-        tablet_id = self.tablets_ids[client_ip]
+        device_id = client_ip
         self.count_done = 0
-        self.tablets_done[tablet_id] = True
-        self.tablets_mark[tablet_id] = data_json['answer']
+        self.tablets_done[device_id] = True
+        self.tablets_mark[device_id] = data_json['answer']
         print(self.tablets_done.values())
         for value in self.tablets_done.values():
             if value:
