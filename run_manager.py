@@ -367,10 +367,12 @@ class ManagerNode():
         # goal: find out whom to address
 
         # first guess
-        unspeaking_rank = {
-            '1': 0,
-            '2': 1
+        base_pair = {
+            self.devices[0]['id']: 0,
+            self.devices[1]['id']: 1
         }
+
+        unspeaking_rank = copy.copy(base_pair)
 
         # rule: find disagreeing tablets
         pairs = self.find_disagree()
@@ -391,26 +393,29 @@ class ManagerNode():
                 if len(unspeaking_rank) >= 2:
                     pairs = [unspeaking_rank[:2]]
                 else:
-                    pairs = [['1', '2']]
+                    pairs = copy.copy(base_pair)
         print('pairs after sensor', pairs)
 
         if len(pairs) == 0: # still no pairs, choose random
             if self.number_of_tablets > 1:
                 pairs = [random.sample([(i+1) for i in range(self.number_of_tablets)], 2)]
             else:
-                pairs = [['1','2']]
+                pairs = copy.copy(base_pair)
         print('pairs after correction', pairs)
 
         # rule: find pair who spoke least
         print('unspeaking_rank', unspeaking_rank)
 
-        best_pair = pairs[0]
-        best_unspoken = 10 # more than twice the number of participants
-        for p in pairs:
-            unspoken = unspeaking_rank[p[0]] + unspeaking_rank[p[1]]
-            if unspoken < best_unspoken:
-                best_unspoken = unspoken
-                best_pair = copy.copy(p)
+        # best_pair = pairs[0]
+        # best_unspoken = 10 # more than twice the number of participants
+        # for p in pairs:
+        #     unspoken = unspeaking_rank[p[0]] + unspeaking_rank[p[1]]
+        #     if unspoken < best_unspoken:
+        #         best_unspoken = unspoken
+        #         best_pair = copy.copy(p)
+
+        best_pair = [random.sample([(i+1) for i in range(self.number_of_tablets)], 2)][0]
+
         print('pairs best', best_pair)
         # run the appropriate behavior
         parameters = ['address_pair_%s_%s' % (best_pair[0], best_pair[1])]
@@ -482,6 +487,11 @@ class ManagerNode():
             print('WRONG CONDITION')
             return
 
+        self.log_publisher.publish(json.dumps({
+            'log': 'register_tablet',
+            'data': parameters
+        }))
+
         self.tablets[parameters['device_id']] = {'subject_id': parameters['group_id'], 'tablet_ip':client_ip}
         self.tablets_subjects_ids[parameters['device_id']] = parameters['group_id']
         self.tablets_ips[parameters['device_id']] = client_ip
@@ -497,6 +507,14 @@ class ManagerNode():
         self.robot_publisher.publish(json.dumps(nao_message))
         while not self.finished_register:
             pass
+
+        # self.finished_register = False
+        # nao_message = {'action': 'say_text_to_speech', 'client_ip':client_ip,
+        #                'parameters': ['hello', str(parameters['tablet_id'])]}
+        # self.robot_publisher.publish(json.dumps(nao_message))
+        # while not self.finished_register:
+        #     pass
+
         if len(self.tablets) >= self.number_of_tablets:
             # TODO: Check, but do not need in current scenario
             # print("two tablets are registered")
