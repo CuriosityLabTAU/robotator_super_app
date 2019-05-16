@@ -4,9 +4,9 @@ import json
 import copy
 
 the_path = 'lecture_files/'
-the_lecture_hash = '60aa4b40-765d-11e9-b4b4-cf18aea23797'
+# the_lecture_hash = '60aa4b40-765d-11e9-b4b4-cf18aea23797'
 # the_lecture_hash = 'eff1b350-7640-11e9-b4b4-cf18aea23797'
-# the_lecture_hash = 'f6782e00-7660-11e9-b4b4-cf18aea23797'
+the_lecture_hash = 'f6782e00-7660-11e9-b4b4-cf18aea23797'
 
 the_file = the_lecture_hash + '/' + the_lecture_hash + '.json'
 lecture = json.load(open(the_path + the_file))
@@ -25,8 +25,8 @@ def isEnglish(s):
 def print_part(part_):
     for k in ['tag', 'action', 'next']:
         print(k, ':', part_[k])
-    if 'done' in part_:
-        print(part_['done'])
+    if 'end' in part_:
+        print(part_['end'])
     print
 
 
@@ -175,7 +175,7 @@ for s, section in enumerate(ordered_sections):
         if 'timeLimit' in value:
             if int(value['timeLimit']) < 30: # too short for a reminder
                 part['seconds'] = int(value['timeLimit'])
-                part['done'] = {
+                part['end'] = {
                     'timeout': after_response,
                     'done': after_response
                 }
@@ -184,7 +184,7 @@ for s, section in enumerate(ordered_sections):
             else:
                 # introduce a reminder
                 part['seconds'] = int(value['timeLimit']) - 30
-                part['done'] = {
+                part['end'] = {
                     'timeout': 'robot_30sec_%s' % part['tag'],
                     'done': after_response
                 }
@@ -193,7 +193,7 @@ for s, section in enumerate(ordered_sections):
 
                 # reminder
                 part = copy.copy(base_robot_action)
-                part['tag'] = parts[-1]['done']['timeout']
+                part['tag'] = parts[-1]['end']['timeout']
                 part['parameters'] = ['30_seconds_left']
                 part['next'] = 'section_%s_robot_sleep_30' % section['name']
                 parts.append(copy.copy(part))
@@ -202,7 +202,7 @@ for s, section in enumerate(ordered_sections):
                 part = copy.copy(base_robot_sleep)
                 part['tag'] = 'section_%s_robot_sleep_30' % section['name']
                 part['seconds'] = 30
-                part['done'] = {
+                part['end'] = {
                     'timeout': after_response,
                     'done': after_response
                 }
@@ -214,7 +214,7 @@ for s, section in enumerate(ordered_sections):
         # robot resolution (given answers and speakers)
         part = copy.copy(base_robot_resolution)
         part['tag'] = 'section_%s_robot_resolution' % section['name']
-        part['done'] = {
+        part['end'] = {
             'timeout': the_next_part,
             'done': the_next_part
         }
