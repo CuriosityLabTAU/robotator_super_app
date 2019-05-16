@@ -175,7 +175,7 @@ for s, section in enumerate(ordered_sections):
         if 'timeLimit' in value:
             if int(value['timeLimit']) < 30: # too short for a reminder
                 part['seconds'] = int(value['timeLimit'])
-                part['end'] = {
+                part['done'] = {
                     'timeout': after_response,
                     'done': after_response
                 }
@@ -184,7 +184,7 @@ for s, section in enumerate(ordered_sections):
             else:
                 # introduce a reminder
                 part['seconds'] = int(value['timeLimit']) - 30
-                part['end'] = {
+                part['done'] = {
                     'timeout': 'robot_30sec_%s' % part['tag'],
                     'done': after_response
                 }
@@ -193,7 +193,7 @@ for s, section in enumerate(ordered_sections):
 
                 # reminder
                 part = copy.copy(base_robot_action)
-                part['tag'] = parts[-1]['end']['timeout']
+                part['tag'] = parts[-1]['done']['timeout']
                 part['parameters'] = ['30_seconds_left']
                 part['next'] = 'section_%s_robot_sleep_30' % section['name']
                 parts.append(copy.copy(part))
@@ -202,7 +202,7 @@ for s, section in enumerate(ordered_sections):
                 part = copy.copy(base_robot_sleep)
                 part['tag'] = 'section_%s_robot_sleep_30' % section['name']
                 part['seconds'] = 30
-                part['end'] = {
+                part['done'] = {
                     'timeout': after_response,
                     'done': after_response
                 }
@@ -214,7 +214,7 @@ for s, section in enumerate(ordered_sections):
         # robot resolution (given answers and speakers)
         part = copy.copy(base_robot_resolution)
         part['tag'] = 'section_%s_robot_resolution' % section['name']
-        part['end'] = {
+        part['done'] = {
             'timeout': the_next_part,
             'done': the_next_part
         }
