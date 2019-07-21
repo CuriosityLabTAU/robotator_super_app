@@ -17,8 +17,12 @@ def intro(group_id=0, nao_ip='192.168.0.107'):
 
 def start_working(group_id, nao_ip):
 
+    def worker0():
+        os.system('roscore')
+        return
+
     def worker1():
-        os.system('python ~/PycharmProjects/twisted_server_ros_2_0/scripts/nao_ros_listener.py ' + nao_ip)
+        os.system('python nao_ros_listener.py ' + nao_ip)
         # os.system('python ~/pycharm/curious_game/nao_ros.py ' + nao_ip)
         return
 
@@ -38,6 +42,9 @@ def start_working(group_id, nao_ip):
     def worker12():
         os.system('rostopic pub -1 /tablet_to_manager std_msgs/String "start the study %s"' % lecture_number)
 
+
+    threading.Thread(target=worker0).start()
+    threading._sleep(2.0)
 
     if is_robot:
         t1 = threading.Thread(target=worker1)
