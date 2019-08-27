@@ -13,7 +13,7 @@ from read_lecture import *
 
 robot_path = '/home/nao/naoqi/sounds/HCI/'
 the_lecture_flow_json_file = 'flow_files/"robotator_study.json"'
-
+the_activity = 'Animal'
 
 
 class ManagerNode():
@@ -137,7 +137,7 @@ class ManagerNode():
                 print(active_lecture)
                 res = requests.put('http://localhost/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid'])
                 print(lecture['name'], res)
-                if 'test' in lecture['name']:
+                if the_activity in lecture['name']:
                     convert_lecture_to_flow(lecture)
 
                     self.current_lecture = lecture
@@ -407,6 +407,15 @@ class ManagerNode():
             'data': pairs
         }))
 
+        # if there are disagreeing pairs, choose from them:
+        if len(pairs) > 0:
+            self.robot_animated_text_to_speech({
+                'action': 'animated_text_to_speech',
+                'parameters': ['You gave different answers. Please discuss why.']
+            })
+            self.finish_resolution(action)
+            return
+
         if is_sensor:
             # rule: find most unspoken people
             unspeaking_rank, most_unspoken = self.find_rank()
@@ -442,23 +451,32 @@ class ManagerNode():
         best_pair = [random.sample([(i+1) for i in range(self.number_of_tablets)], 2)][0]
 
         print('pairs best', best_pair)
-        # run the appropriate behavior
-        parameters = ['address_pair_%s_%s' % (best_pair[0], best_pair[1])]
-
-        nao_message = {"action": 'run_behavior',
-                       "parameters": parameters}
-        self.robot_end_signal = {nao_message['parameters'][0]: False}
-        self.robot_publisher.publish(json.dumps(nao_message))
-        time.sleep(0.2)
-
-        self.robot_publisher.publish(json.dumps({"action": 'play_audio_file',
-                                                 "parameters": [robot_path + 'Two_explain.wav']}))
-        if is_robot:
-            while not self.robot_end_signal[nao_message['parameters'][0]]:
-                pass
+        if is_generic:
+            self.robot_animated_text_to_speech({
+                'action': 'animated_text_to_speech',
+                'parameters': ['You all gave the same answers. Can you think of a reason why you can be wrong?']
+            })
         else:
-            time.sleep(2)
+            # run the appropriate behavior
+            parameters = ['address_pair_%s_%s' % (best_pair[0], best_pair[1])]
 
+            nao_message = {"action": 'run_behavior',
+                           "parameters": parameters}
+            self.robot_end_signal = {nao_message['parameters'][0]: False}
+            self.robot_publisher.publish(json.dumps(nao_message))
+            time.sleep(0.2)
+
+            self.robot_publisher.publish(json.dumps({"action": 'play_audio_file',
+                                                     "parameters": [robot_path + 'Two_explain.wav']}))
+            if is_robot:
+                while not self.robot_end_signal[nao_message['parameters'][0]]:
+                    pass
+            else:
+                time.sleep(2)
+        self.finish_resolution(action)
+
+
+    def finish_resolution(self, action):
         # reset the counters
         self.sensor_publisher.publish("C")
         time.sleep(0.1)
@@ -525,16 +543,17 @@ class ManagerNode():
         if parameters['session']:
             self.session = parameters['session']
 
-        if is_robot:
-            self.finished_register = False
-            nao_message = {'action': 'say_text_to_speech', 'client_ip':client_ip,
-                           'parameters': ['register tablet', 'tablet_id',str(parameters['tablet_id']),
-                                          'group id',str(parameters['group_id'])]}
-            self.robot_publisher.publish(json.dumps(nao_message))
-            print('register tablet:', parameters)
-            print('waiting for other tablets...')
-            while not self.finished_register:
-                pass
+        ### Not necessary here!!!
+        # if is_robot:
+        #     self.finished_register = False
+        #     nao_message = {'action': 'say_text_to_speech', 'client_ip':client_ip,
+        #                    'parameters': ['register tablet', 'tablet_id',str(parameters['tablet_id']),
+        #                                   'group id',str(parameters['group_id'])]}
+        #     self.robot_publisher.publish(json.dumps(nao_message))
+        #     print('register tablet:', parameters)
+        #     print('waiting for other tablets...')
+        #     while not self.finished_register:
+        #         pass
 
         # self.finished_register = False
         # nao_message = {'action': 'say_text_to_speech', 'client_ip':client_ip,

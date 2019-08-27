@@ -43,7 +43,7 @@ def convert_lecture_to_flow(lecture, the_lecture_hash=None):
 
     generate_text_for_speech(lecture)
 
-    # TODO: go over sections, and create the json flow
+    # go over sections, and create the json flow
     base_robot_action = {
         'tag': 'tag',
         'target': 'robot',
@@ -80,7 +80,7 @@ def convert_lecture_to_flow(lecture, the_lecture_hash=None):
         'tag': 'tag',
         'target': 'robot',
         'action': 'resolution',
-        'seconds': 60,
+        'seconds': 30,
         'done': {
             'timeout': 'timeout',
             'done': 'done'
@@ -196,9 +196,14 @@ def convert_lecture_to_flow(lecture, the_lecture_hash=None):
                     parts.append(copy.copy(part))
 
                     # reminder
-                    part = copy.copy(base_robot_action)
+                    # English
+                    part = copy.copy(base_robot_animated_text)
+                    part['parameters'] = ['You have only 30 seconds left.']
+                    # # Recordings
+                    # part = copy.copy(base_robot_action)
+                    # part['parameters'] = ['30_seconds_left']
+
                     part['tag'] = parts[-1]['done']['timeout']
-                    part['parameters'] = ['30_seconds_left']
                     part['next'] = 'section_%s_robot_sleep_30' % section['name']
                     parts.append(copy.copy(part))
 
