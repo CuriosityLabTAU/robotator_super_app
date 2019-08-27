@@ -3,6 +3,13 @@
 - Get computer ip
 - Connect tablets to TPLINK
 
+>>>> computer
+>> sudo service docker start
+>> cd ~/robotator/Installation
+>> sudo docker-compose up
+
+
+>>>> Tablet
 - Run SessionApp
 - Insert "register" into user name
 - Insert computer's IP to all tablets (first time, it remembers later)
@@ -13,6 +20,8 @@
 --- Enter "group_id, user_id" in user_name (IP is already inserted)
 --- Press OK
 
+
+>>>> Computer
 - run ManagerNode (waiting for register_tablet)
 - run ServerNode
 --- init --> present all lectures/sessions

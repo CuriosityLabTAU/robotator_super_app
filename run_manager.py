@@ -9,6 +9,7 @@ import operator
 import copy
 from run_condition import *
 import requests
+from read_lecture import *
 
 robot_path = '/home/nao/naoqi/sounds/HCI/'
 the_lecture_flow_json_file = 'flow_files/"robotator_study.json"'
@@ -17,7 +18,7 @@ the_lecture_flow_json_file = 'flow_files/"robotator_study.json"'
 
 class ManagerNode():
 
-    number_of_tablets = 5
+    number_of_tablets = 1
     tablets = {}    #in the form of {tablet_id_1:{"subject_id":subject_id, "tablet_ip";tablet_ip}
                                     #,tablet_id_2:{"subject_id":subject_id, "tablet_ip";tablet_ip}
 
@@ -48,7 +49,21 @@ class ManagerNode():
     tablets_mark = {}
     tablets_continue = {}
 
-
+    def get_ok_devices(self):
+        if database:
+            # DEVICES
+            print('----- devices -----')
+            read_devices = requests.get('http://localhost/apilocaladmin/api/v1/device/getAll').json()
+            for d in read_devices:
+                if len(d['user_name'].split(',')) == 2:
+                    self.devices.append(copy.copy(d))
+        else:
+            self.devices = [{
+                'id': 1,
+                'user_name': '1,1'
+            }
+            ]
+        self.number_of_tablets = len(self.devices)
 
     def __init__(self):
         print("init run_manager")
@@ -118,9 +133,13 @@ class ManagerNode():
             # LECTURES
             self.lectures = requests.get('http://localhost/apilocaladmin/api/v1/admin/lectures').json()
             for lecture in self.lectures:
+                active_lecture = 'http://localhost/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid']
+                print(active_lecture)
                 res = requests.put('http://localhost/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid'])
                 print(lecture['name'], res)
-                if lecture['name'] == 'HCI_1':
+                if 'test' in lecture['name']:
+                    convert_lecture_to_flow(lecture)
+
                     self.current_lecture = lecture
                     self.first_section = json.loads(self.current_lecture['sectionsOrdering'])[0]
 
@@ -193,9 +212,12 @@ class ManagerNode():
                 #         self.tablets_mark = {}
                 #     except:
                 #         print('not enough tablets')
-            next_action = copy.copy(self.actions[action['next']])
-            print('from show screen to ...', next_action)
-            self.run_study_action(next_action)
+            if action['next'] != 'end':
+                next_action = copy.copy(self.actions[action['next']])
+                print('from show screen to ...', next_action)
+                self.run_study_action(next_action)
+            else:
+                self.the_end()
 
         elif action['target'] == 'robot':
             if action["action"] in ["play_audio_file", "animated_text_to_speech"]:
@@ -326,7 +348,7 @@ class ManagerNode():
 
     def robot_sleep(self, action):
         self.is_sleeping = True
-        print("start_timer")
+        print("start_timer ... ", action["seconds"])
         # either go on timeout
         self.sleep_timer = Timer(float(action["seconds"]), self.run_study_action,
                                  [self.actions[action["done"]["timeout"]]])
@@ -365,6 +387,9 @@ class ManagerNode():
         # first, aggregate data fron sensor and tablets
         # do group-dynamics logic
         # goal: find out whom to address
+
+        if len(self.devices) < 2:
+            return
 
         # first guess
         base_pair = {
@@ -483,9 +508,9 @@ class ManagerNode():
     #         #    self.tablets_audience_done[key]=False
 
     def register_tablet(self, parameters, client_ip):
-        if 'robot' not in parameters['condition']:
-            print('WRONG CONDITION')
-            return
+        # if 'robot' not in parameters['condition']:
+        #     print('WRONG CONDITION')
+        #     return
 
         self.log_publisher.publish(json.dumps({
             'log': 'register_tablet',
@@ -500,13 +525,16 @@ class ManagerNode():
         if parameters['session']:
             self.session = parameters['session']
 
-        self.finished_register = False
-        nao_message = {'action': 'say_text_to_speech', 'client_ip':client_ip,
-                       'parameters': ['register tablet', 'tablet_id',str(parameters['tablet_id']),
-                                      'group id',str(parameters['group_id'])]}
-        self.robot_publisher.publish(json.dumps(nao_message))
-        while not self.finished_register:
-            pass
+        if is_robot:
+            self.finished_register = False
+            nao_message = {'action': 'say_text_to_speech', 'client_ip':client_ip,
+                           'parameters': ['register tablet', 'tablet_id',str(parameters['tablet_id']),
+                                          'group id',str(parameters['group_id'])]}
+            self.robot_publisher.publish(json.dumps(nao_message))
+            print('register tablet:', parameters)
+            print('waiting for other tablets...')
+            while not self.finished_register:
+                pass
 
         # self.finished_register = False
         # nao_message = {'action': 'say_text_to_speech', 'client_ip':client_ip,
@@ -515,17 +543,17 @@ class ManagerNode():
         # while not self.finished_register:
         #     pass
 
-        if len(self.tablets) >= self.number_of_tablets:
-            # TODO: Check, but do not need in current scenario
-            # print("two tablets are registered")
-            # for key,value in self.tablets_ips.viewitems():
-            #     print ("key, value", key, value)
-            #     client_ip = value
-            #     message = {'action':'registration_complete','client_ip':client_ip}
-            #     self.tablet_publisher.publish(json.dumps(message))
-            #time.sleep(2)
-            self.finished_register = False
-            self.run_study_timer = Timer(5.0, self.run_generic_script())
+        # if len(self.tablets) >= self.number_of_tablets:
+        #     # TODO: Check, but do not need in current scenario
+        #     # print("two tablets are registered")
+        #     # for key,value in self.tablets_ips.viewitems():
+        #     #     print ("key, value", key, value)
+        #     #     client_ip = value
+        #     #     message = {'action':'registration_complete','client_ip':client_ip}
+        #     #     self.tablet_publisher.publish(json.dumps(message))
+        #     #time.sleep(2)
+        #     self.finished_register = False
+        #     self.run_study_timer = Timer(5.0, self.run_generic_script())
         print("finish register_tablet")
 
 
@@ -553,27 +581,16 @@ class ManagerNode():
         elif 'register tablet' in data.data:
             self.finished_register = True
 
-
     def start(self, info, lecture_number='1'):
         for lecture in self.lectures:
             if lecture['name'] == 'HCI_%s' % lecture_number:
                 self.current_lecture = lecture
         self.first_section = json.loads(self.current_lecture['sectionsOrdering'])[0]
 
-        if database:
-            # DEVICES
-            print('----- devices -----')
-            self.devices = requests.get('http://localhost/apilocaladmin/api/v1/device/getAll').json()
-        else:
-            self.devices = [{
-                'id': 1,
-                'user_name': '1,1'
-            }
-            ]
-        self.number_of_tablets = len(self.devices)
+        self.get_ok_devices()
+
         self.number_of_tablets_done = self.number_of_tablets
         print(self.devices)
-
 
         # set the first section to be the first section
         r = requests.post('http://localhost/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
@@ -584,22 +601,32 @@ class ManagerNode():
 
         # register all tablets
         for d in self.devices:
-            # try:
-            d_info = d['user_name'].split(',')
-            group_id = d_info[0]
-            tablet_id = d_info[1]
-            self.register_tablet({
-                                  'session': self.current_lecture,
-                                  'tablet_id': tablet_id,
-                                  'group_id': group_id,
-                                  'condition': 'robot',
-                                  'device_id': d['id']
-                              },
-                                 d['id'])
-            print('tablet_node: published tablet ', d['user_name'])
-            time.sleep(1)
-            # except:
-            #     print('ERROR: please enter a correct username: group_id, tablet_id. ', d['user_name'])
+            try:
+                print(d)
+                d_info = d['user_name'].split(',')
+                print(d_info)
+                group_id = d_info[0]
+                tablet_id = d_info[1]
+                parameters = {
+                    'session': self.current_lecture,
+                    'tablet_id': tablet_id,
+                    'group_id': group_id,
+                    'condition': 'robot',
+                    'device_id': d['id']
+                }
+                if not is_robot:
+                    parameters['condition'] = 'tablet'
+
+                self.register_tablet(parameters, d['id'])
+                print('tablet_node: published tablet ', d['user_name'])
+                time.sleep(1)
+            except:
+                print('ERROR: please enter a correct username: group_id, tablet_id. ', d['user_name'])
+        # wait for all the tablets to register
+        while len(self.tablets) < self.number_of_tablets:
+            pass
+        # What next?
+        self.run_study_timer = Timer(5.0, self.run_generic_script())
 
     def callback_to_manager(self, data):
         print("start manager callback_to_manager", data.data)
