@@ -148,7 +148,8 @@ def convert_lecture_to_flow(lecture, the_lecture_hash=None):
 
                 if isEnglish(section['notes']):
                     part = copy.copy(base_robot_animated_text)
-                    part['parameters'] = [section['notes']]
+                    part['parameters'] = [section['notes'].replace('\\wait\\',
+                                                                   '^run(animations/Stand/Gestures/Explain_1)')]
                 else:
                     part = copy.copy(base_robot_action)
                     part['parameters'] = ['section_%s' % section['name']]

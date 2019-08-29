@@ -18,7 +18,7 @@ the_activity = 'Animal'
 
 class ManagerNode():
 
-    number_of_tablets = 1
+    number_of_tablets = 3
     tablets = {}    #in the form of {tablet_id_1:{"subject_id":subject_id, "tablet_ip";tablet_ip}
                                     #,tablet_id_2:{"subject_id":subject_id, "tablet_ip";tablet_ip}
 
@@ -50,13 +50,15 @@ class ManagerNode():
     tablets_continue = {}
 
     def get_ok_devices(self):
+        self.devices = []
         if database:
             # DEVICES
             print('----- devices -----')
             read_devices = requests.get('http://localhost/apilocaladmin/api/v1/device/getAll').json()
             for d in read_devices:
-                if len(d['user_name'].split(',')) == 2:
-                    self.devices.append(copy.copy(d))
+                if len(d['user_name'].split(',')) == 2:         #DEBUG
+                    if int(d['user_name'].split(',')[0]) >= 10: #DEBUG
+                        self.devices.append(copy.copy(d))
         else:
             self.devices = [{
                 'id': 1,
@@ -64,6 +66,7 @@ class ManagerNode():
             }
             ]
         self.number_of_tablets = len(self.devices)
+        self.number_of_tablets_done = self.number_of_tablets
 
     def __init__(self):
         print("init run_manager")
@@ -92,7 +95,8 @@ class ManagerNode():
         self.waiting_timer = False
         self.waiting_robot = False
 
-        self.session = {'name': 'HCI_1'}
+        self.session = {'name': 'Animals'}
+        # {'name': 'HCI_1'}
 
         i=1
         while i <= self.number_of_tablets:
@@ -102,8 +106,8 @@ class ManagerNode():
         self.tablets = {}
 
         self.robot_end_signal = {}
+        self.number_of_tablets_done = 0
         self.tablets_done = {}
-        self.number_of_tablets_done = self.number_of_tablets
         self.tablets_agree = {}
         self.tablets_mark = {}
         self.tablets_continue = {}
@@ -601,9 +605,9 @@ class ManagerNode():
             self.finished_register = True
 
     def start(self, info, lecture_number='1'):
-        for lecture in self.lectures:
-            if lecture['name'] == 'HCI_%s' % lecture_number:
-                self.current_lecture = lecture
+        # for lecture in self.lectures:
+        #     if lecture['name'] == 'HCI_%s' % lecture_number:
+        #         self.current_lecture = lecture
         self.first_section = json.loads(self.current_lecture['sectionsOrdering'])[0]
 
         self.get_ok_devices()
@@ -680,8 +684,8 @@ class ManagerNode():
         for value in self.tablets_done.values():
             if value:
                 self.count_done += 1
-        print(self.count_done, self.number_of_tablets_done)
-        if self.count_done == self.number_of_tablets_done:
+        print('count done', self.count_done, self.number_of_tablets_done)
+        if self.count_done >= self.number_of_tablets_done:
             try:
                 self.sleep_timer.cancel()
                 print("self.sleep_timer.cancel()")
@@ -689,6 +693,7 @@ class ManagerNode():
                 print("failed self.sleep_timer_cancel")
             self.count_done = 0
             self.tablets_done = {}
+            print('DEBUG', self.robot_end_signal)
             threading.Thread(target=self.run_study_action, args=[self.actions[self.robot_end_signal['done']]]).start()
         print("audience_done")
         # self.audience_done(data_json['parameters']['tablet_id'], data_json['parameters']['subject_id'],

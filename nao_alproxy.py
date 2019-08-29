@@ -52,6 +52,8 @@ class NaoALProxy:
 
         self.installed_behaviors = self.get_installed_behaviors()
 
+        self.tts.setParameter('speed', 80)
+
     def parse_message(self, message):
         # message is json string in the form of:  {'action': 'run_behavior', 'parameters': ["movements/introduction_all_0",...]}
         # eval the action and run with parameters.
