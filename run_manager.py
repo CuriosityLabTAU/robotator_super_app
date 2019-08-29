@@ -693,7 +693,6 @@ class ManagerNode():
                 print("failed self.sleep_timer_cancel")
             self.count_done = 0
             self.tablets_done = {}
-            print('DEBUG', self.robot_end_signal)
             threading.Thread(target=self.run_study_action, args=[self.actions[self.robot_end_signal['done']]]).start()
         print("audience_done")
         # self.audience_done(data_json['parameters']['tablet_id'], data_json['parameters']['subject_id'],
