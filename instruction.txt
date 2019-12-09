@@ -8,6 +8,8 @@
 >> cd ~/robotator/Installation
 >> sudo docker-compose up
 
+REACT: http://localhost/localadmin/
+
 
 >>>> Tablet
 - Run SessionApp

@@ -12,13 +12,15 @@ import requests
 from read_lecture import *
 
 robot_path = '/home/nao/naoqi/sounds/HCI/'
-the_lecture_flow_json_file = 'flow_files/"robotator_study.json"'
+# the_lecture_flow_json_file = 'flow_files/"robotator_study.json"'
+the_lecture_flow_json_file = 'flow_files/Animal.json'
 the_activity = 'Animal'
+robot = 'robotod'  #  'nao'
 
 
 class ManagerNode():
-
-    number_of_tablets = 3
+    ROBOT = robot
+    number_of_tablets = 1
     tablets = {}    #in the form of {tablet_id_1:{"subject_id":subject_id, "tablet_ip";tablet_ip}
                                     #,tablet_id_2:{"subject_id":subject_id, "tablet_ip";tablet_ip}
 
@@ -75,7 +77,16 @@ class ManagerNode():
         # connection to robot
         # msg:
         #   'play_audio_file', '*.wav' --> animated speech
-        self.robot_publisher = rospy.Publisher('to_nao', String, queue_size=1)
+        if self.ROBOT == 'nao':
+            self.robot_publisher = rospy.Publisher('to_nao', String, queue_size=10)
+            self.robot_state = rospy.Subscriber('/nao_state', String, self.state_callback)
+        elif self.ROBOT == 'robotod':
+            self.robot_publisher = rospy.Publisher('/to_robotod', String, queue_size=10)
+            self.robot_state = rospy.Subscriber('/robotod_state', String, self.state_callback)
+            self.robot_sound_path = 'shorashim/robotod/sounds/'
+            self.sound_suffix = ''
+            self.robot_behavior_path = 'shorashim/robotod/blocks/'
+
 
         # connection to tablet
         # msg structure: action, 'client_ip'
@@ -85,7 +96,6 @@ class ManagerNode():
 
         self.log_publisher = rospy.Publisher('log', String, queue_size=1)
 
-        rospy.Subscriber('nao_state', String, self.callback_nao_state, queue_size=1)
         rospy.Subscriber('tablet_to_manager', String, self.callback_to_manager, queue_size=1)
         rospy.Subscriber('conc_speaker', String, self.callback_sensor, queue_size=1)
         rospy.Subscriber('send_data', String, self.callback_engage, queue_size=1)
@@ -142,7 +152,10 @@ class ManagerNode():
                 res = requests.put('http://localhost/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid'])
                 print(lecture['name'], res)
                 if the_activity in lecture['name']:
-                    convert_lecture_to_flow(lecture)
+                    if self.ROBOT == 'nao':
+                        convert_lecture_to_flow_nao(lecture)
+                    elif self.ROBOT == 'robotod':
+                        convert_lecture_to_flow_robotod(lecture)
 
                     self.current_lecture = lecture
                     self.first_section = json.loads(self.current_lecture['sectionsOrdering'])[0]
@@ -224,11 +237,13 @@ class ManagerNode():
                 self.the_end()
 
         elif action['target'] == 'robot':
-            if action["action"] in ["play_audio_file", "animated_text_to_speech"]:
+            if action["action"] in ["play_audio_file", "animated_text_to_speech", "run_block"]:
                 if 'play' in action['action']:
                     self.robot_play_audio_file(action)
                 elif 'animated' in action['action']:
                     self.robot_animated_text_to_speech(action)
+                elif 'block' in action['action']:
+                    self.robot_run_block(action)
                 if action['next'] != 'end':
                     next_action = copy.copy(self.actions[action['next']])
                     self.run_study_action(next_action)
@@ -323,7 +338,8 @@ class ManagerNode():
 
     def robot_wakeup(self, action):
         local_action = {"action": "wake_up"}
-        self.run_robot_behavior(local_action)
+        if self.ROBOT == 'nao':
+            self.run_robot_behavior(local_action)
         # local_action = {'action': 'set_autonomous_state', 'parameters': ['solitary']}
         # self.run_robot_behavior(local_action)
         next_action = copy.copy(self.actions[action['next']])
@@ -479,7 +495,6 @@ class ManagerNode():
                 time.sleep(2)
         self.finish_resolution(action)
 
-
     def finish_resolution(self, action):
         # reset the counters
         self.sensor_publisher.publish("C")
@@ -501,6 +516,23 @@ class ManagerNode():
             time.sleep(2)
         print('done waiting_robot', nao_message["action"])
 
+    def robot_run_block(self, action):
+        print('************ block ***************')
+        print(action)
+        print('*************** block *************')
+        robot_message = {
+            'action': 'run_behavior_and_sound',
+            'parameters': action['parameters']
+        }
+        self.robot_end_signal = {robot_message['parameters'][0]: False}
+        print(json.dumps(robot_message))
+        self.robot_publisher.publish(json.dumps(robot_message))
+        time.sleep(0.23)
+        if is_robot:
+            while not self.robot_end_signal[robot_message['parameters'][0]]:
+                pass
+        else:
+            time.sleep(2)
 
     # ==== handling tablets =====
 
@@ -584,7 +616,7 @@ class ManagerNode():
 # CALLBACK FUNCTIONS
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def callback_nao_state(self, data):
+    def state_callback(self, data):
         # get messages back from the robot
         # the only thing here is the end of a behavior/audio
         # print("manager callback_nao_state", data.data, self.waiting_robot)
