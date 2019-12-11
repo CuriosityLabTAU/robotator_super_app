@@ -636,10 +636,7 @@ class ManagerNode():
         elif 'register tablet' in data.data:
             self.finished_register = True
 
-    def start(self, info, lecture_number='1'):
-        # for lecture in self.lectures:
-        #     if lecture['name'] == 'HCI_%s' % lecture_number:
-        #         self.current_lecture = lecture
+    def start(self):
         self.first_section = json.loads(self.current_lecture['sectionsOrdering'])[0]
 
         self.get_ok_devices()
@@ -686,7 +683,7 @@ class ManagerNode():
     def callback_to_manager(self, data):
         print("start manager callback_to_manager", data.data)
         if 'start the study' in data.data:
-            self.start(data.data, lecture_number=data.data[-1])
+            self.start()
             return
 
         data_json = json.loads(data.data)

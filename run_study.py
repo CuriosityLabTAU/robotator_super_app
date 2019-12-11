@@ -2,7 +2,6 @@ import os
 import threading
 import time
 import sys
-import subprocess
 from run_condition import *
 
 
@@ -17,62 +16,70 @@ def intro(group_id=0, nao_ip='192.168.0.104'):
 
 def start_working(group_id, nao_ip):
 
-    def worker0():
-        os.system('roscore')
+    def worker_tablet_coordinator_backend():
+        print('starting the tablet coordinator backend...')
+        os.system('./tablet_coordinator_backend.sh > /dev/null 2>&1')
         return
 
-    def worker1():
+    def worker_tablet_coordinator_frontend():
+        print('starting the tablet coordinator frontend...')
+        os.system('./tablet_coordinator_frontend.sh > /dev/null 2>&1')
+        return
+
+    def worker_roscore():
+        print('starting roscore ...')
+        os.system('roscore > /dev/null 2>&1')
+        return
+
+    def worker_robot():
+        print('starting %s ...' % which_robot)
         if which_robot == 'nao':
             os.system('python nao_ros_listener.py ' + nao_ip)
         # os.system('python ~/pycharm/curious_game/nao_ros.py ' + nao_ip)
         elif which_robot == 'robotod':
-            os.system('python robotod_ros_listener.py')
-
+            os.system('python robotod_ros_listener.py > /dev/null 2>&1')
         return
 
-    def worker2():
-        os.system('~/PycharmProjects/dualfisheye-to-affectiva/run.sh')
+    def worker_sensors():
+        print('starting sensors...')
+        os.system('./run_sensors.sh > /dev/null 2>&1')
         return
 
-    def worker6():
+    def worker_rosbag():
         os.system('rosbag record -a -o data/robotator_' + str(group_id) + '.bag')
 
-    def worker10():
+    def worker_manager():
         os.system('python run_manager.py')
 
-    def worker11(): # initialize server
-        os.system('python tablet_node.py')
+    def worker_start_study():
+        os.system('rostopic pub -1 /tablet_to_manager std_msgs/String "start the study"')
 
-    def worker12():
-        os.system('rostopic pub -1 /tablet_to_manager std_msgs/String "start the study %s"' % lecture_number)
+    def run_thread(worker):
+        threading.Thread(target=worker).start()
+        threading._sleep(2.0)
 
+    # first, run the tablet coordinator, backend and then frontend
+    run_thread(worker_tablet_coordinator_backend)
+    run_thread(worker_tablet_coordinator_frontend)
 
-    threading.Thread(target=worker0).start()
-    threading._sleep(2.0)
+    # next open roscore
+    run_thread(worker_roscore)
+
+    # sensor suit
+    run_thread(worker_sensors)
 
     if is_robot:
-        t1 = threading.Thread(target=worker1)
-        t1.start()
-        threading._sleep(2.5)
+        run_thread(worker_robot)
 
-    # # running in cmd, because of many outputs!
-    # t2 = threading.Thread(target=worker2)
-    # t2.start()
-    # threading._sleep(2.5)
+    # run the manager
+    run_thread(worker_manager)
 
-    t10 = threading.Thread(target=worker10)
-    t10.start()
-    threading._sleep(0.5)
+    # start recording
+    run_thread((worker_rosbag))
 
-    # t11 = threading.Thread(target=worker11)
-    # t11.start()
-    # threading._sleep(0.5)
+    raw_input('Press any key to start ...')
 
-    lecture_number = raw_input('Press any key to start ...')
-
-    t12 = threading.Thread(target=worker12)
-    t12.start()
-    threading._sleep(0.2)
+    run_thread(worker_start_study)
 
 
 if len(sys.argv) > 1:
