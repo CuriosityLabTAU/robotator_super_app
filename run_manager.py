@@ -15,7 +15,7 @@ robot_path = '/home/nao/naoqi/sounds/HCI/'
 # the_lecture_flow_json_file = 'flow_files/"robotator_study.json"'
 the_lecture_flow_json_file = 'flow_files/Animal.json'
 the_activity = 'Animal'
-robot = 'robotod'  #  'nao'
+robot = which_robot
 
 
 class ManagerNode():
@@ -56,7 +56,7 @@ class ManagerNode():
         if database:
             # DEVICES
             print('----- devices -----')
-            read_devices = requests.get('http://localhost/apilocaladmin/api/v1/device/getAll').json()
+            read_devices = requests.get('http://localhost:8003/apilocaladmin/api/v1/device/getAll').json()
             for d in read_devices:
                 if len(d['user_name'].split(',')) == 2:         #DEBUG
                     if int(d['user_name'].split(',')[0]) >= 10: #DEBUG
@@ -145,11 +145,11 @@ class ManagerNode():
         self.current_section = None
         if database:
             # LECTURES
-            self.lectures = requests.get('http://localhost/apilocaladmin/api/v1/admin/lectures').json()
+            self.lectures = requests.get('http://localhost:8003/apilocaladmin/api/v1/admin/lectures').json()
             for lecture in self.lectures:
-                active_lecture = 'http://localhost/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid']
+                active_lecture = 'http://localhost:8003/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid']
                 print(active_lecture)
-                res = requests.put('http://localhost/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid'])
+                res = requests.put('http://localhost:8003/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid'])
                 print(lecture['name'], res)
                 if the_activity in lecture['name']:
                     if self.ROBOT == 'nao':
@@ -282,7 +282,7 @@ class ManagerNode():
                 self.robot_wakeup(action)
 
     def get_current_answers(self, a_section):
-        all_answers = requests.get('http://localhost/apilocaladmin/api/v1/lecture/%s/answers' %
+        all_answers = requests.get('http://localhost:8003/apilocaladmin/api/v1/lecture/%s/answers' %
                                    self.current_lecture['uuid']).json()
         current_answers = [a['answers'] for a in all_answers if a['uuid'] == a_section][0]
         tablet_answers = {}
@@ -293,7 +293,7 @@ class ManagerNode():
     def tablet_actions(self, info):
         current_section = info['screen_name']
 
-        r = requests.post('http://localhost/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
+        r = requests.post('http://localhost:8003/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
             'lectureUUID': self.current_lecture['uuid'],
             'sectionUUID': current_section
         })
@@ -648,7 +648,7 @@ class ManagerNode():
         print(self.devices)
 
         # set the first section to be the first section
-        r = requests.post('http://localhost/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
+        r = requests.post('http://localhost:8003/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
             'lectureUUID': self.current_lecture['uuid'],
             'sectionUUID': self.first_section
         })

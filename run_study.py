@@ -22,9 +22,11 @@ def start_working(group_id, nao_ip):
         return
 
     def worker1():
-        # os.system('python nao_ros_listener.py ' + nao_ip)
+        if which_robot == 'nao':
+            os.system('python nao_ros_listener.py ' + nao_ip)
         # os.system('python ~/pycharm/curious_game/nao_ros.py ' + nao_ip)
-        os.system('python /home/curious/PycharmProjects/twisted_server_ros_2_0/scripts/robotod_ros_listener.py')
+        elif which_robot == 'robotod':
+            os.system('python robotod_ros_listener.py')
 
         return
 
