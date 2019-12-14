@@ -28,7 +28,7 @@ def start_working(group_id, nao_ip):
 
     def worker_roscore():
         print('starting roscore ...')
-        os.system('roscore > /dev/null 2>&1')
+        os.system('roscore')# > /dev/null 2>&1')
         return
 
     def worker_robot():

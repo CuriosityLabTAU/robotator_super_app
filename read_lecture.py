@@ -2,6 +2,35 @@
 # -*- coding: utf-8 -*-
 import json
 import copy
+from convert_text_to_speech_hebrew import *
+import os
+import subprocess
+
+
+
+def mp3_file_length(filename):
+    args = ("ffprobe", "-show_entries", "format=duration", "-i", filename)
+    popen = subprocess.Popen(args, stdout=subprocess.PIPE)
+    popen.wait()
+    output = popen.stdout.read().split('\n')[1].split('=')[1]
+    return output
+
+
+def isEnglish(s):
+    try:
+        s.encode(encoding='utf-8').decode('ascii')
+    except UnicodeDecodeError:
+        return False
+    else:
+        return True
+
+
+def print_part(part_):
+    for k in ['tag', 'action', 'next']:
+        print(k, ':', part_[k])
+    if 'end' in part_:
+        print(part_['end'])
+    print
 
 
 def convert_lecture_to_flow_nao(lecture, the_lecture_hash=None):
@@ -14,25 +43,6 @@ def convert_lecture_to_flow_nao(lecture, the_lecture_hash=None):
         the_file = the_lecture_hash + '/' + the_lecture_hash + '.json'
         lecture = json.load(open(the_path + the_file))
     # convert lecture json to activity json
-
-
-
-    def isEnglish(s):
-        try:
-            s.encode(encoding='utf-8').decode('ascii')
-        except UnicodeDecodeError:
-            return False
-        else:
-            return True
-
-
-    def print_part(part_):
-        for k in ['tag', 'action', 'next']:
-            print(k, ':', part_[k])
-        if 'end' in part_:
-            print(part_['end'])
-        print
-
 
     def generate_text_for_speech(lecture_):
         for s, section_ in enumerate(lecture['sections']):
@@ -238,8 +248,22 @@ def convert_lecture_to_flow_nao(lecture, the_lecture_hash=None):
         json.dump(study_flow, open('flow_files/%s.json' % lecture['name'], 'w+'))
 
 
+def generate_text_to_speech(lecture_, the_path):
+    for s, section_ in enumerate(lecture_['sections']):
+        if section_['notes']:
+            filename = '%ssection_%s.mp3' % (the_path, section_['name'])
+            if not os.path.exists(filename):
+                tts_heb(text=section_['notes'].encode('utf-8'),
+                        filename=filename)
+
+
 def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
-    the_path = 'lecture_files/'
+
+    the_path = 'lecture_files/' + lecture['name'] + '/'
+    # create the path for the lecture files
+    if not os.path.exists(the_path):
+        os.makedirs(the_path)
+
     # the_lecture_hash = '60aa4b40-765d-11e9-b4b4-cf18aea23797'
     # the_lecture_hash = 'eff1b350-7640-11e9-b4b4-cf18aea23797'
     # the_lecture_hash = 'f6782e00-7660-11e9-b4b4-cf18aea23797'
@@ -250,53 +274,18 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
     # convert lecture json to activity json
 
 
-
-    def isEnglish(s):
-        try:
-            s.encode(encoding='utf-8').decode('ascii')
-        except UnicodeDecodeError:
-            return False
-        else:
-            return True
-
-
-    def print_part(part_):
-        for k in ['tag', 'action', 'next']:
-            print(k, ':', part_[k])
-        if 'end' in part_:
-            print(part_['end'])
-        print
-
-
-    def generate_text_for_speech(lecture_):
-        for s, section_ in enumerate(lecture['sections']):
-            if section_['notes']:
-                f = open('speech_files/section_%s.txt' % section_['name'], 'w+')
-                f.write(section_['notes'].encode('utf-8'))
-                f.close()
-
-    generate_text_for_speech(lecture)
+    generate_text_to_speech(lecture, the_path)
 
     # go over sections, and create the json flow
-    base_robot_action = {
-        'tag': 'tag',
-        'target': 'robot',
-        'action': 'play_audio_file',
-        'parameters': 'parameters',
-        'next': 'next',
-        'debug': 'debug'
-    }
-
     base_robot_animated_text = {
         'tag': 'tag',
         'target': 'robot',
         'action': 'run_block',
-        'parameters': ['/home/curious/PycharmProjects/run_general_robot_script/shorashim/robotod/blocks/Explain_4',
-                       '/home/curious/PycharmProjects/run_general_robot_script/shorashim/robotod/sounds/00'],
+        'parameters': ['/home/curious/PycharmProjects/run_general_robot_script/shorashim/robotod/blocks/Explain_4.new',
+                       '/home/curious/PycharmProjects/run_general_robot_script/shorashim/robotod/sounds/00.mp3'],
         'next': 'next',
         'debug': 'debug'
     }
-
 
     base_robot_sleep = {
         'tag': 'tag',
@@ -387,11 +376,26 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
                     # part['parameters'] = [section['notes'].replace('\\wait\\',
                     #                                                '^run(animations/Stand/Gestures/Explain_1)')]
                 else:
-                    part = copy.copy(base_robot_action)
-                    part['parameters'] = ['section_%s' % section['name']]
+                    part = copy.copy(base_robot_animated_text)
+                    # find relevant mp3 file
+                    # if there is no corresponding block file
+                    # -- estimate mp3 length
+                    # -- find appropriate block file according to length
+                    audio_file = '%ssection_%s.mp3' % (the_path, section['name'])
+                    if not os.path.exists(audio_file):
+                        print('ERROR: no audio file for the notes. ', audio_file)
+                        audio_file = 'example.mp3'
+                    block_file = '%ssection_%s.new' % (the_path, section['name'])
+                    if not os.path.exists(block_file):
+                        audio_file_length = float(mp3_file_length(audio_file))
+                        closest_block_length = int(audio_file_length / 5.0) * 5
+                        block_file = 'robot_files/robotod/blocks/explain_%d.new' % closest_block_length
+                        if not os.path.exists(block_file):
+                            block_file = 'robot_files/robotod/blocks/Explain_4.new'
+                    part['parameters'] = [block_file, audio_file]
                 part['tag'] = parts[-1]['next']
 
-        if s < len(lecture['sections']) - 1:
+        if s < len(ordered_sections) - 1:
             the_next_part = 'section_%s_show_screen' % ordered_sections[s + 1]['name']
         else:
             the_next_part = 'end'
@@ -433,12 +437,12 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
                     parts.append(copy.copy(part))
 
                     # reminder
-                    # English
+                    # # English
+                    # part = copy.copy(base_robot_animated_text)
+                    # part['parameters'] = ['You have only 30 seconds left.']
+                    # Recordings
                     part = copy.copy(base_robot_animated_text)
-                    part['parameters'] = ['You have only 30 seconds left.']
-                    # # Recordings
-                    # part = copy.copy(base_robot_action)
-                    # part['parameters'] = ['30_seconds_left']
+                    part['parameters'] = ['robot_files/robotod/blocks/Explain_4.new', 'robot_files/robotod/blocks/30_sec_reminder.mp3']
 
                     part['tag'] = parts[-1]['done']['timeout']
                     part['next'] = 'section_%s_robot_sleep_30' % section['name']

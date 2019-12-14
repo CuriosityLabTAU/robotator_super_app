@@ -12,9 +12,7 @@ import requests
 from read_lecture import *
 
 robot_path = '/home/nao/naoqi/sounds/HCI/'
-# the_lecture_flow_json_file = 'flow_files/"robotator_study.json"'
-the_lecture_flow_json_file = 'flow_files/Animal.json'
-the_activity = 'Animal'
+the_activity = 'ai_lab'
 robot = which_robot
 
 
@@ -90,16 +88,16 @@ class ManagerNode():
 
         # connection to tablet
         # msg structure: action, 'client_ip'
-        self.tablet_publisher = rospy.Publisher('to_tablet', String, queue_size=1, latch=True, )
+        self.tablet_publisher = rospy.Publisher('/to_tablet', String, queue_size=1, latch=True, )
 
         self.sensor_publisher = rospy.Publisher("/send_msg", String, queue_size=1)
 
-        self.log_publisher = rospy.Publisher('log', String, queue_size=1)
+        self.log_publisher = rospy.Publisher('/log', String, queue_size=1)
 
-        rospy.Subscriber('tablet_to_manager', String, self.callback_to_manager, queue_size=1)
-        rospy.Subscriber('conc_speaker', String, self.callback_sensor, queue_size=1)
-        rospy.Subscriber('send_data', String, self.callback_engage, queue_size=1)
-        rospy.Subscriber('send_speaker_data', String, self.callback_speak, queue_size=1)
+        rospy.Subscriber('/tablet_to_manager', String, self.callback_to_manager, queue_size=1)
+        rospy.Subscriber('/conc_speaker', String, self.callback_sensor, queue_size=1)
+        rospy.Subscriber('/send_data', String, self.callback_engage, queue_size=1)
+        rospy.Subscriber('/send_speaker_data', String, self.callback_speak, queue_size=1)
         # rospy.Subscriber('log', String, self.callback_log)
         self.waiting = False
         self.waiting_timer = False
@@ -367,6 +365,9 @@ class ManagerNode():
             time.sleep(2)
 
     def robot_sleep(self, action):
+        # TODO: look_at who's talking
+        # or encourage one who's not talking
+
         self.is_sleeping = True
         print("start_timer ... ", action["seconds"])
         # either go on timeout
@@ -408,10 +409,12 @@ class ManagerNode():
         # do group-dynamics logic
         # goal: find out whom to address
 
+        # there is only one tablet, continue
         if len(self.devices) < 2:
+            self.run_study_action(self.actions[action["done"]["timeout"]])
             return
 
-        # first guess
+        # first guess: first two tablets
         base_pair = {
             self.devices[0]['id']: 0,
             self.devices[1]['id']: 1
@@ -429,16 +432,28 @@ class ManagerNode():
 
         # if there are disagreeing pairs, choose from them:
         if len(pairs) > 0:
-            self.robot_animated_text_to_speech({
-                'action': 'animated_text_to_speech',
-                'parameters': ['You gave different answers. Please discuss why.']
-            })
-            self.finish_resolution(action)
-            return
+            audio_file = 'robot_files/robotod/blocks/different_answers.mp3'
+        else:
+            audio_file = 'robot_files/robotod/blocks/same_answers.mp3'
+
+        #     if which_robot == 'nao':
+        #         self.robot_animated_text_to_speech({
+        #             'action': 'animated_text_to_speech',
+        #             'parameters': ['You gave different answers. Please discuss why.']
+        #         })
+        #     elif which_robot == 'robotod':
+        #         self.robot_animated_text_to_speech({
+        #             'action': 'animated_text_to_speech',
+        #             'parameters': ['robot_files/robotod/blocks/different_answers.new',
+        #                            'robot_files/robotod/blocks/different_answers.mp3']
+        #         })
+        #     self.finish_resolution(action)
+        #     return
 
         if is_sensor:
             # rule: find most unspoken people
             unspeaking_rank, most_unspoken = self.find_rank()
+            print('unspeaking_rank', unspeaking_rank)
             self.log_publisher.publish(json.dumps({
                 'log': 'unspeaking',
                 'data': unspeaking_rank
@@ -448,6 +463,15 @@ class ManagerNode():
                     pairs = [unspeaking_rank[:2]]
                 else:
                     pairs = copy.copy(base_pair)
+            else: # there are disagreeing pairs, choose the most unspoken ones
+                best_pair = pairs[0]
+                best_unspoken = 10 # more than twice the number of participants
+                for p in pairs:
+                    unspoken = unspeaking_rank[p[0]] + unspeaking_rank[p[1]]
+                    if unspoken < best_unspoken:
+                        best_unspoken = unspoken
+                        best_pair = copy.copy(p)
+                pairs = [best_pair]
         print('pairs after sensor', pairs)
 
         if len(pairs) == 0: # still no pairs, choose random
@@ -457,42 +481,21 @@ class ManagerNode():
                 pairs = copy.copy(base_pair)
         print('pairs after correction', pairs)
 
-        # rule: find pair who spoke least
-        print('unspeaking_rank', unspeaking_rank)
+        best_pair = pairs[0]
 
-        # best_pair = pairs[0]
-        # best_unspoken = 10 # more than twice the number of participants
-        # for p in pairs:
-        #     unspoken = unspeaking_rank[p[0]] + unspeaking_rank[p[1]]
-        #     if unspoken < best_unspoken:
-        #         best_unspoken = unspoken
-        #         best_pair = copy.copy(p)
-
-        best_pair = [random.sample([(i+1) for i in range(self.number_of_tablets)], 2)][0]
-
-        print('pairs best', best_pair)
-        if is_generic:
+        if which_robot == 'nao':
+            # TODO check if disagree or agree
             self.robot_animated_text_to_speech({
                 'action': 'animated_text_to_speech',
                 'parameters': ['You all gave the same answers. Can you think of a reason why you can be wrong?']
             })
         else:
-            # run the appropriate behavior
-            parameters = ['address_pair_%s_%s' % (best_pair[0], best_pair[1])]
+            self.robot_animated_text_to_speech({
+                'action': 'run_block',
+                'parameters': ['robot_files/robotod/blocks/address_pair_%s_%s' % (best_pair[0], best_pair[1]),
+                               audio_file]
+            })
 
-            nao_message = {"action": 'run_behavior',
-                           "parameters": parameters}
-            self.robot_end_signal = {nao_message['parameters'][0]: False}
-            self.robot_publisher.publish(json.dumps(nao_message))
-            time.sleep(0.2)
-
-            self.robot_publisher.publish(json.dumps({"action": 'play_audio_file',
-                                                     "parameters": [robot_path + 'Two_explain.wav']}))
-            if is_robot:
-                while not self.robot_end_signal[nao_message['parameters'][0]]:
-                    pass
-            else:
-                time.sleep(2)
         self.finish_resolution(action)
 
     def finish_resolution(self, action):

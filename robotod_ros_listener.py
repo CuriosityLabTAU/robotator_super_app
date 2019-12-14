@@ -35,7 +35,7 @@ class RobotodListenerNode():
         self.publisher = rospy.Publisher('/dxl/command_position', CommandPosition, queue_size=10)
         self.rifd_sub = rospy.Subscriber('/rfid', String, self.callback)
         rospy.Subscriber('/to_robotod', String, self.callback_to_robotod)
-        self.state_publisher = rospy.Publisher('robotod_state', String, queue_size=1)
+        self.state_publisher = rospy.Publisher('/robotod_state', String, queue_size=1)
 
 
         pygame.init()
@@ -107,12 +107,13 @@ class RobotodListenerNode():
         print("PARSE_MESSAGE")
         print(str("self."+action+"("+str(parameters)+")"))
 
-        self.block_name = parameters[0] + '.new'
-        self.sound_filename = parameters[1] + '.mp3'
+        # TODO Shorashim change!!!
+        self.block_name = parameters[0]
+        self.sound_filename = parameters[1]
         if len(parameters) > 2:
-            self.lip_filename = parameters[2] + '.csv'
+            self.lip_filename = parameters[2]
         else:
-            self.lip_filename = parameters[1] + '.csv'
+            self.lip_filename = parameters[1][:-4] + '.csv'
 
         self.load_block(self.block_name)
         self.play()
