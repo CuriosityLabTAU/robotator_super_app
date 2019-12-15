@@ -5,7 +5,7 @@ import copy
 from convert_text_to_speech_hebrew import *
 import os
 import subprocess
-
+import numpy as np
 
 
 def mp3_file_length(filename):
@@ -387,8 +387,12 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
                         audio_file = 'example.mp3'
                     block_file = '%ssection_%s.new' % (the_path, section['name'])
                     if not os.path.exists(block_file):
-                        audio_file_length = float(mp3_file_length(audio_file))
-                        closest_block_length = int(audio_file_length / 5.0) * 5
+                        # select the behavior to be as long as the sound file
+                        # a little shorter, so there won't be movement without sound
+                        audio_file_length = np.floor(float(mp3_file_length(audio_file)))
+                        closest_block_length = int(audio_file_length / 5.0) * 5 - 5
+                        if closest_block_length < 0:
+                            closest_block_length = 0
                         block_file = 'robot_files/robotod/blocks/explain_%d.new' % closest_block_length
                         if not os.path.exists(block_file):
                             block_file = 'robot_files/robotod/blocks/Explain_4.new'
@@ -442,7 +446,7 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
                     # part['parameters'] = ['You have only 30 seconds left.']
                     # Recordings
                     part = copy.copy(base_robot_animated_text)
-                    part['parameters'] = ['robot_files/robotod/blocks/Explain_4.new', 'robot_files/robotod/blocks/30_sec_reminder.mp3']
+                    part['parameters'] = ['robot_files/robotod/blocks/30_sec_reminder.new', 'robot_files/robotod/blocks/30_sec_reminder.mp3']
 
                     part['tag'] = parts[-1]['done']['timeout']
                     part['next'] = 'section_%s_robot_sleep_30' % section['name']

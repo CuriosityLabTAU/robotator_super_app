@@ -415,10 +415,7 @@ class ManagerNode():
             return
 
         # first guess: first two tablets
-        base_pair = {
-            self.devices[0]['id']: 0,
-            self.devices[1]['id']: 1
-        }
+        base_pair = [self.devices[0]['id'], self.devices[1]['id']]
 
         unspeaking_rank = copy.copy(base_pair)
 
@@ -476,12 +473,12 @@ class ManagerNode():
 
         if len(pairs) == 0: # still no pairs, choose random
             if self.number_of_tablets > 1:
-                pairs = [random.sample([(i+1) for i in range(self.number_of_tablets)], 2)]
+                pairs = [random.sample([d['id'] for d in self.devices], 2)]
             else:
                 pairs = copy.copy(base_pair)
         print('pairs after correction', pairs)
 
-        best_pair = pairs[0]
+        best_pair = random.choice(pairs)
 
         if which_robot == 'nao':
             # TODO check if disagree or agree
@@ -490,9 +487,12 @@ class ManagerNode():
                 'parameters': ['You all gave the same answers. Can you think of a reason why you can be wrong?']
             })
         else:
-            self.robot_animated_text_to_speech({
+            addressable_tablets = [self.tablets[best_pair[0]]['tablet_pos'],
+                                   self.tablets[best_pair[1]]['tablet_pos']]
+            self.robot_run_block({
                 'action': 'run_block',
-                'parameters': ['robot_files/robotod/blocks/address_pair_%s_%s' % (best_pair[0], best_pair[1]),
+                'parameters': ['robot_files/robotod/blocks/explain_5.new',
+                               #'robot_files/robotod/blocks/address_pair_%s_%s' % (addressable_tablets[0], addressable_tablets[1]),
                                audio_file]
             })
 
@@ -574,7 +574,9 @@ class ManagerNode():
             'data': parameters
         }))
 
-        self.tablets[parameters['device_id']] = {'subject_id': parameters['group_id'], 'tablet_ip':client_ip}
+        self.tablets[parameters['device_id']] = {'subject_id': parameters['group_id'],
+                                                 'tablet_ip':client_ip,
+                                                 'tablet_pos': len(self.tablets) + 1}
         self.tablets_subjects_ids[parameters['device_id']] = parameters['group_id']
         self.tablets_ips[parameters['device_id']] = client_ip
         self.tablets_ids[client_ip] = parameters['device_id']
@@ -601,7 +603,7 @@ class ManagerNode():
         # while not self.finished_register:
         #     pass
 
-        # if len(self.tablets) >= self.number_of_tablets:
+        # if len(self.tablets) >= self.number_of_tablets:callback_sensor
         #     # TODO: Check, but do not need in current scenario
         #     # print("two tablets are registered")
         #     # for key,value in self.tablets_ips.viewitems():
@@ -733,7 +735,7 @@ class ManagerNode():
     def pos_to_tablet(self, speaker_info):
         # convert the position from the directional microphone, to tablet id, via the calibration file
         tablet_info = {}
-        for info in speaker_info:
+        for id, info in speaker_info.items():
             dist = 1000000
             best_fit = None
             for tab_id, tab_pos in self.tablet_calibration.items():
@@ -746,13 +748,12 @@ class ManagerNode():
     def callback_sensor(self, data):
         # print("start manager callback_sensor", data.data)
         # parsing the message
-        speakers = str(data.data)[1:-1].split(',')[1:]
-        speaker_data = [speaker[2:-1].split('_') for speaker in speakers]
-        speaker_info = []
-        for d in speaker_data:
-            if len(d) == 2:
-                speaker_info.append({'pos': int(d[0]), 'count': int(d[1])})
-        self.sensor_speak = self.pos_to_tablet(speaker_info)
+        speakers = json.loads(data.data)
+        # speaker_info = []
+        # for d in speaker_data:
+        #     if len(d) == 2:
+        #         speaker_info.append({'pos': int(d[0]), 'count': int(d[1])})
+        self.sensor_speak = self.pos_to_tablet(speakers)
 
     def callback_engage(self, data):
         subject_data = str(data.data).split(' ')
