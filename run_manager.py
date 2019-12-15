@@ -451,24 +451,26 @@ class ManagerNode():
             # rule: find most unspoken people
             unspeaking_rank, most_unspoken = self.find_rank()
             print('unspeaking_rank', unspeaking_rank)
-            self.log_publisher.publish(json.dumps({
-                'log': 'unspeaking',
-                'data': unspeaking_rank
-            }))
-            if len(pairs) == 0: # there are no disagreeing pairs, so choose the two most unspoken ones
-                if len(unspeaking_rank) >= 2:
-                    pairs = [unspeaking_rank[:2]]
-                else:
-                    pairs = copy.copy(base_pair)
-            else: # there are disagreeing pairs, choose the most unspoken ones
-                best_pair = pairs[0]
-                best_unspoken = 10 # more than twice the number of participants
-                for p in pairs:
-                    unspoken = unspeaking_rank.index(p[0]) + unspeaking_rank.index(p[1])
-                    if unspoken < best_unspoken:
-                        best_unspoken = unspoken
-                        best_pair = copy.copy(p)
-                pairs = [best_pair]
+            if most_unspoken >= 0:  # there is at least one speaker
+                self.log_publisher.publish(json.dumps({
+                    'log': 'unspeaking',
+                    'data': unspeaking_rank
+                }))
+                if len(pairs) == 0: # there are no disagreeing pairs, so choose the two most unspoken ones
+                    if len(unspeaking_rank) >= 2:
+                        pairs = [unspeaking_rank[:2]]
+                    else:
+                        pairs = copy.copy(base_pair)
+                else: # there are disagreeing pairs, choose the most unspoken ones
+                    best_pair = pairs[0]
+                    best_unspoken = 10 # more than twice the number of participants
+                    for p in pairs:
+                        if p[0] in unspeaking_rank and p[1] in unspeaking_rank:
+                            unspoken = unspeaking_rank.index(p[0]) + unspeaking_rank.index(p[1])
+                            if unspoken < best_unspoken:
+                                best_unspoken = unspoken
+                                best_pair = copy.copy(p)
+                    pairs = [best_pair]
         print('pairs after sensor', pairs)
 
         if len(pairs) == 0: # still no pairs, choose random
@@ -745,14 +747,13 @@ class ManagerNode():
         return tablet_info
 
     def callback_sensor(self, data):
-        # print("start manager callback_sensor", data.data)
-        # parsing the message
-        speakers = json.loads(data.data)
-        # speaker_info = []
-        # for d in speaker_data:
-        #     if len(d) == 2:
-        #         speaker_info.append({'pos': int(d[0]), 'count': int(d[1])})
-        self.sensor_speak = self.pos_to_tablet(speakers)
+        try:
+            # print("start manager callback_sensor", data.data)
+            # parsing the message
+            speakers = json.loads(data.data)
+            self.sensor_speak = self.pos_to_tablet(speakers)
+        except:
+            print('ERROR in sensor:', data.data)
 
     def callback_engage(self, data):
         subject_data = str(data.data).split(' ')
@@ -922,11 +923,14 @@ class ManagerNode():
 
     def find_rank(self):    # TODO: check
         sorted_sensor_speak = sorted(self.sensor_speak.items(), key=lambda kv: kv[1])
-        most_unspoken_ = sorted_sensor_speak[0][0]
-        rank_sensor_speak_ = []
-        for s in sorted_sensor_speak:
-            rank_sensor_speak_.append(s[0])
-        return rank_sensor_speak_, most_unspoken_
+        if len(sorted_sensor_speak) > 0:
+            most_unspoken_ = sorted_sensor_speak[0][0]
+            rank_sensor_speak_ = []
+            for s in sorted_sensor_speak:
+                rank_sensor_speak_.append(s[0])
+            return rank_sensor_speak_, most_unspoken_
+        else:
+            return [], -1
 
     def the_end(self):
         action = {"action": "rest"}
