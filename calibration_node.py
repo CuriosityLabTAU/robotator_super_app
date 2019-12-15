@@ -1,4 +1,5 @@
 import threading
+import os
 import rospy
 from std_msgs.msg import String
 import json
@@ -9,9 +10,9 @@ class CalibrationNode():
         print("init server_node")
 
         rospy.init_node('tablet_node')
-        rospy.Subscriber('conc_speaker', String, self.callback)
+        rospy.Subscriber('/conc_speaker', String, self.callback)
 
-        self.current_speaker_info = []
+        self.current_speaker_info = {}
         self.current_speaker_pos = None
 
         t1 = threading.Thread(target=self.mark)
@@ -22,17 +23,13 @@ class CalibrationNode():
         rospy.spin()
 
     def callback(self, data):
-        speakers = str(data.data)[1:-1].split(',')[1:]
-        speaker_data = [speaker[2:-1].split('_') for speaker in speakers]
-        speaker_info = []
-        for d in speaker_data:
-            if len(d) == 2:
-                speaker_info.append({'pos': int(d[0]), 'count': int(d[1])})
-        for i, s in enumerate(self.current_speaker_info):
-            if s['count'] < speaker_info[i]['count']:
+        speaker_info = json.loads(data.data)#str(data.data)[1:-1].split(',')[1:]
+        for k, v in self.current_speaker_info.items():
+            if v['count'] < speaker_info[k]['count']:
                 # print('-----', s['pos'])
-                self.current_speaker_pos = s['pos']
+                self.current_speaker_pos = v['pos']
         self.current_speaker_info = speaker_info
+        print(self.current_speaker_info)
 
     def mark(self):
         tablet_id = -1
@@ -45,5 +42,17 @@ class CalibrationNode():
         print('Saving to calibration file ...')
         json.dump(self.tablets, open('calibration.txt', 'w+'))
 
+
+def worker_sensors():
+    print('starting sensors...')
+    os.system('./run_sensors.sh > /dev/null 2>&1')
+    return
+
+
+def run_thread(worker):
+    threading.Thread(target=worker).start()
+    threading._sleep(2.0)
+
+run_thread(worker_sensors)
 
 cn = CalibrationNode()

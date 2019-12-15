@@ -1,5 +1,5 @@
 is_robot = True
 which_robot = 'robotod' # 'nao'
-is_sensor = False
+is_sensor = True
 database = True
 is_generic = True

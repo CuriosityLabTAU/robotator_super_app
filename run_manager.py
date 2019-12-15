@@ -415,7 +415,7 @@ class ManagerNode():
             return
 
         # first guess: first two tablets
-        base_pair = [self.devices[0]['id'], self.devices[1]['id']]
+        base_pair = [1, 2]
 
         unspeaking_rank = copy.copy(base_pair)
 
@@ -464,7 +464,7 @@ class ManagerNode():
                 best_pair = pairs[0]
                 best_unspoken = 10 # more than twice the number of participants
                 for p in pairs:
-                    unspoken = unspeaking_rank[p[0]] + unspeaking_rank[p[1]]
+                    unspoken = unspeaking_rank.index(p[0]) + unspeaking_rank.index(p[1])
                     if unspoken < best_unspoken:
                         best_unspoken = unspoken
                         best_pair = copy.copy(p)
@@ -473,7 +473,7 @@ class ManagerNode():
 
         if len(pairs) == 0: # still no pairs, choose random
             if self.number_of_tablets > 1:
-                pairs = [random.sample([d['id'] for d in self.devices], 2)]
+                pairs = [random.sample([(i+1) for i in range(self.number_of_tablets_done)], 2)]
             else:
                 pairs = copy.copy(base_pair)
         print('pairs after correction', pairs)
@@ -487,12 +487,10 @@ class ManagerNode():
                 'parameters': ['You all gave the same answers. Can you think of a reason why you can be wrong?']
             })
         else:
-            addressable_tablets = [self.tablets[best_pair[0]]['tablet_pos'],
-                                   self.tablets[best_pair[1]]['tablet_pos']]
             self.robot_run_block({
                 'action': 'run_block',
                 'parameters': ['robot_files/robotod/blocks/explain_5.new',
-                               #'robot_files/robotod/blocks/address_pair_%s_%s' % (addressable_tablets[0], addressable_tablets[1]),
+                               #'robot_files/robotod/blocks/address_pair_%s_%s' % (best_pair[0], best_pair[1]),
                                audio_file]
             })
 
@@ -736,13 +734,14 @@ class ManagerNode():
         # convert the position from the directional microphone, to tablet id, via the calibration file
         tablet_info = {}
         for id, info in speaker_info.items():
-            dist = 1000000
-            best_fit = None
-            for tab_id, tab_pos in self.tablet_calibration.items():
-                if abs(tab_pos - info['pos']) < dist:
-                    dist = abs(tab_pos - info['pos'])
-                    best_fit = int(tab_id)
-            tablet_info[best_fit] = info['count']
+            if info['pos'] > 0:
+                dist = 1000000
+                best_fit = None
+                for tab_id, tab_pos in self.tablet_calibration.items():
+                    if abs(tab_pos - info['pos']) < dist:
+                        dist = abs(tab_pos - info['pos'])
+                        best_fit = int(tab_id)
+                tablet_info[best_fit] = info['count']
         return tablet_info
 
     def callback_sensor(self, data):
@@ -917,21 +916,23 @@ class ManagerNode():
                     if len(set(self.tablets_mark[t_id_1]).symmetric_difference(
                             set(self.tablets_mark[t_id_2])
                     )) > 0:  # there is some difference
-                        tablet_pairs.append([t_id_1, t_id_2])
+                        tablet_pairs.append([self.tablets[t_id_1]['tablet_pos'],
+                                             self.tablets[t_id_2]['tablet_pos']])
         return tablet_pairs
 
     def find_rank(self):    # TODO: check
         sorted_sensor_speak = sorted(self.sensor_speak.items(), key=lambda kv: kv[1])
         most_unspoken_ = sorted_sensor_speak[0][0]
-        rank_sensor_speak_ = {}
-        for i, s in enumerate(sorted_sensor_speak):
-            rank_sensor_speak_[s[0]] = i
+        rank_sensor_speak_ = []
+        for s in sorted_sensor_speak:
+            rank_sensor_speak_.append(s[0])
         return rank_sensor_speak_, most_unspoken_
 
     def the_end(self):
         action = {"action": "rest"}
         self.run_robot_behavior(action)
         print('THE END')
+
 
 if __name__ == '__main__':
     try:
