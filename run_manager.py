@@ -491,9 +491,9 @@ class ManagerNode():
         else:
             self.robot_run_block({
                 'action': 'run_block',
-                'parameters': ['robot_files/robotod/blocks/explain_5.new',
-                               #'robot_files/robotod/blocks/address_pair_%s_%s' % (best_pair[0], best_pair[1]),
-                               audio_file]
+                'parameters': [#'robot_files/robotod/blocks/explain_5.new',
+                               'robot_files/robotod/blocks/address_pair_%s_%s.new' % (best_pair[0], best_pair[1]),
+                               audio_file, 'robot_files/robotod/blocks/explain_5.csv']
             })
 
         self.finish_resolution(action)

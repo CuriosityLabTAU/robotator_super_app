@@ -396,7 +396,8 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
                         block_file = 'robot_files/robotod/blocks/explain_%d.new' % closest_block_length
                         if not os.path.exists(block_file):
                             block_file = 'robot_files/robotod/blocks/Explain_4.new'
-                    part['parameters'] = [block_file, audio_file]
+                        lip_file = 'robot_files/robotod/blocks/explain_%d.csv' % closest_block_length
+                    part['parameters'] = [block_file, audio_file, lip_file]
                 part['tag'] = parts[-1]['next']
 
         if s < len(ordered_sections) - 1:
@@ -410,7 +411,6 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
             student_respond = section_value['canRespond']
         elif section['key'] in ['quiz', 'imageQuestion']:
             student_respond = True
-
         if student_respond:
             part['next'] = 'section_%s_robot_sleep' % section['name']
             parts.append(copy.copy(part))
