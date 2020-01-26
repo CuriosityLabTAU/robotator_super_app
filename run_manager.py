@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 import json
 import rospy
 from std_msgs.msg import String
@@ -12,7 +14,7 @@ import requests
 from read_lecture import *
 
 robot_path = '/home/nao/naoqi/sounds/HCI/'
-the_activity = 'ai_lab'
+the_activity = 'photosynthesis' #'ai_lab'
 robot = which_robot
 
 
