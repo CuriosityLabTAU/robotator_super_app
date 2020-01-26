@@ -14,7 +14,7 @@ import requests
 from read_lecture import *
 
 robot_path = '/home/nao/naoqi/sounds/HCI/'
-the_activity = 'photosynthesis' #'ai_lab'
+the_activity = 'ai_lab'#'photosynthesis' #
 robot = which_robot
 
 

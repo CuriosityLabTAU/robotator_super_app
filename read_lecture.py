@@ -6,6 +6,7 @@ from convert_text_to_speech_hebrew import *
 import os
 import subprocess
 import numpy as np
+from mp3_to_amplitude import path_to_lip_csv
 
 
 def mp3_file_length(filename):
@@ -255,6 +256,7 @@ def generate_text_to_speech(lecture_, the_path):
             if not os.path.exists(filename):
                 tts_heb(text=section_['notes'].encode('utf-8'),
                         filename=filename)
+    path_to_lip_csv(the_path)
 
 
 def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
