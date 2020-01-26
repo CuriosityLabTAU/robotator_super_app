@@ -51,6 +51,8 @@ for z in zip_files:
 for i, ln in enumerate(lecture_names):
     print(i, ln)
 
+
+print('Import the lecture into the database.')
 x = raw_input('Select lecture to convert ...')
 x = int(x)
 the_name = lecture_names[x][0]
