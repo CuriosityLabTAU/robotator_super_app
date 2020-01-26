@@ -3,18 +3,7 @@ Important: Lecture name must be English
 http://3.16.165.80/lectureadmin/login
 >> Export lecture
 
-Terminal / Files
->>cp ~/Downloads/lecture_file.zip ./lecture_files
->>mkdir lecture_file
->>unzip lecture_file.zip lecture_file/.
-
->> ./tablet_coordinator_backend.sh
->> ./tablet_coordinator_frontend.sh
-ReactAPP
->> Import lecture > lecture_files/lecture_file.zip
-
-First time the lecture runs, it will create the .mp3 and the flow files.
-
+run import_lecture
 
 
 *** Initial Setup
