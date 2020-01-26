@@ -72,7 +72,7 @@ def start_working(group_id, nao_ip):
         run_thread(worker_robot)
 
     # run the manager
-    # run_thread(worker_manager)
+    run_thread(worker_manager)
 
     # start recording
     run_thread((worker_rosbag))
