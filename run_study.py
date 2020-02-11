@@ -42,8 +42,11 @@ def start_working(group_id, nao_ip):
 
     def worker_sensors():
         print('starting sensors...')
-        os.system('./run_sensors.sh > /dev/null 2>&1')
+        os.system('./run_sensors.sh') # > /dev/null 2>&1')
         return
+
+    def worker_activate_patricc():
+        os.system('rostopic pub -1 /patricc_activation_mode std_msgs/String "face_tracking|motion_control"')
 
     def worker_rosbag():
         os.system('rosbag record -a -o data/robotator_' + str(group_id) + '.bag')
@@ -67,9 +70,11 @@ def start_working(group_id, nao_ip):
 
     # sensor suit
     run_thread(worker_sensors)
+    threading._sleep(6.0)
 
     if is_robot:
         run_thread(worker_robot)
+        run_thread(worker_activate_patricc)
 
     # run the manager
     run_thread(worker_manager)

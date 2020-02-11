@@ -34,10 +34,10 @@ run_thread(worker_tablet_coordinator_frontend)
 
 
 # move from downloads to lecture_files
-zip_files = [f for f in listdir('../../Downloads') if '.zip' in f and len(f.split('-')) == 5]
-for z in zip_files:
-    print(z)
-    rename('../../Downloads/%s' % z, 'lecture_files/%s' % z)
+# zip_files = [f for f in listdir('../../Downloads') if '.zip' in f and len(f.split('-')) == 5]
+# for z in zip_files:
+#     print(z)
+#     rename('../../Downloads/%s' % z, 'lecture_files/%s' % z)
 
 # for all files in lecture files
 zip_files = [f for f in listdir('lecture_files') if '.zip' in f and len(f.split('-')) == 5]

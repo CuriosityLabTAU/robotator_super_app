@@ -32,7 +32,8 @@ class RobotodListenerNode():
         self.rfid_change = [None for i in range(5)]
         self.is_rfid_change = False
 
-        self.publisher = rospy.Publisher('/dxl/command_position', CommandPosition, queue_size=10)
+        # self.publisher = rospy.Publisher('/dxl/command_position', CommandPosition, queue_size=10)
+        self.publisher = rospy.Publisher('/patricc_motion_control', CommandPosition, queue_size=10)
         self.rifd_sub = rospy.Subscriber('/rfid', String, self.callback)
         rospy.Subscriber('/to_robotod', String, self.callback_to_robotod)
         self.state_publisher = rospy.Publisher('/robotod_state', String, queue_size=1)
@@ -69,7 +70,7 @@ class RobotodListenerNode():
         rospy.init_node('block_player')
 
 
-        self.initiailize_robotod()
+        # self.initiailize_robotod()
         rospy.spin()
 
     def run_script(self, script):
