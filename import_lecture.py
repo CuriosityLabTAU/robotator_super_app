@@ -1,4 +1,5 @@
 from os import listdir, rename, system
+import os
 import json
 import threading
 from read_lecture import *
@@ -34,17 +35,20 @@ run_thread(worker_tablet_coordinator_frontend)
 
 
 # move from downloads to lecture_files
-# zip_files = [f for f in listdir('../../Downloads') if '.zip' in f and len(f.split('-')) == 5]
-# for z in zip_files:
-#     print(z)
-#     rename('../../Downloads/%s' % z, 'lecture_files/%s' % z)
+zip_files = [f for f in listdir('../../Downloads') if '.zip' in f and len(f.split('-')) == 5]
+for z in zip_files:
+    print("Moved from downloads: ", z)
+    rename('../../Downloads/%s' % z, 'lecture_files/%s' % z)
 
 # for all files in lecture files
 zip_files = [f for f in listdir('lecture_files') if '.zip' in f and len(f.split('-')) == 5]
 lecture_names = []
 for z in zip_files:
-    print(z)
-    system('unzip lecture_files/%s -d lecture_files/%s' % (z, z[:-4]))
+    print("unzipping: ", z)
+    if os.path.isdir('lecture_files/%s' % z[:-4]):
+        print('aleady unzipped')
+    else:
+        system('unzip lecture_files/%s -d lecture_files/%s' % (z, z[:-4]))
     j = json.load(open('lecture_files/%s/%s.json' % (z[:-4], z[:-4])))
     lecture_names.append([j['name'], z[:-4]])
 
@@ -62,6 +66,8 @@ lectures = requests.get('http://localhost:8003/apilocaladmin/api/v1/admin/lectur
 for lecture in lectures:
     if the_name in lecture['name']:
         convert_lecture_to_flow_robotod(lecture)
+        print('cp lecture_files/%s/* lecture_files/%s/.' % (lecture_names[x][1], lecture_names[x][0]))
+        system('cp lecture_files/%s/* lecture_files/%s/.' % (lecture_names[x][1], lecture_names[x][0]))
 
-
+print("DONE!")
 

@@ -359,6 +359,9 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
         part['screen_name'] = section['uuid']
         if 'questionType' in value:
             part['activity_type'] = value['questionType']
+            if len(value['timeLimit']) == 0:
+                print("ERROR", value)
+                value['timeLimit'] = 30
             part['duration'] = int(value['timeLimit'])
             part['response'] = 1 # TODO
         elif 'canRespond' in value:
@@ -482,3 +485,15 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
             study_flow.append(p)
 
         json.dump(study_flow, open('flow_files/%s.json' % lecture['name'], 'w+'))
+
+    no_end = True
+    for p in study_flow:
+        if p['tag'] == 'end':
+            no_end = False
+    if no_end:
+        study_flow.append({
+              "tag": "end", "target": "robot",
+              "action":"wake_up",
+              "next": 'end'
+            })
+    json.dump(study_flow, open('flow_files/%s.json' % lecture['name'], 'w+'))

@@ -14,7 +14,7 @@ import requests
 from read_lecture import *
 
 robot_path = '/home/nao/naoqi/sounds/HCI/'
-the_activity = 'ai_lab'#'photosynthesis' #
+the_activity = 'hisotry_michal_by_goren' #'ai_lab'#'photosynthesis' #
 robot = which_robot
 
 
@@ -343,7 +343,10 @@ class ManagerNode():
         # local_action = {'action': 'set_autonomous_state', 'parameters': ['solitary']}
         # self.run_robot_behavior(local_action)
         next_action = copy.copy(self.actions[action['next']])
-        self.run_study_action(next_action)
+        if next_action['tag'] == 'end':
+            self.the_end()
+        else:
+            self.run_study_action(next_action)
 
     def robot_play_audio_file(self, action):
         print('play audio action', action)
@@ -737,7 +740,8 @@ class ManagerNode():
     def pos_to_tablet(self, speaker_info):
         # convert the position from the directional microphone, to tablet id, via the calibration file
         tablet_info = {}
-        for id, info in speaker_info.items():
+        # for id, info in speaker_info.items():
+        for info in speaker_info:
             if info['pos'] > 0:
                 dist = 1000000
                 best_fit = None
