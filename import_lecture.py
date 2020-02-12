@@ -1,8 +1,11 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 from os import listdir, rename, system
 import os
 import json
 import threading
 from read_lecture import *
+from hebrew_tool import *
 
 
 # get all zip files in Downloads
@@ -64,10 +67,15 @@ print(lecture_names[x])
 
 lectures = requests.get('http://localhost:8003/apilocaladmin/api/v1/admin/lectures').json()
 for lecture in lectures:
+    print('Names from database: ', lecture['name'])
     if the_name in lecture['name']:
         convert_lecture_to_flow_robotod(lecture)
+        lecture_path = 'lecture_files/%s' % lecture_names[x][0]
+
         print('cp lecture_files/%s/* lecture_files/%s/.' % (lecture_names[x][1], lecture_names[x][0]))
         system('cp lecture_files/%s/* lecture_files/%s/.' % (lecture_names[x][1], lecture_names[x][0]))
+
+        convert_mp3_csv_to_proper_names(lecture_path)
 
 print("DONE!")
 

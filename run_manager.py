@@ -12,9 +12,11 @@ import copy
 from run_condition import *
 import requests
 from read_lecture import *
+import sys
+from hebrew_tool import *
 
 robot_path = '/home/nao/naoqi/sounds/HCI/'
-the_activity = 'hisotry_michal_by_goren' #'ai_lab'#'photosynthesis' #
+the_activity = 'roni_civic' #'hisotry_michal_by_goren' #'ai_lab'#'photosynthesis' #
 robot = which_robot
 
 
@@ -53,13 +55,13 @@ class ManagerNode():
 
     def get_ok_devices(self):
         self.devices = []
-        if database:
+        if is_database:
             # DEVICES
             print('----- devices -----')
             read_devices = requests.get('http://localhost:8003/apilocaladmin/api/v1/device/getAll').json()
             for d in read_devices:
                 if len(d['user_name'].split(',')) == 2:         #DEBUG
-                    if int(d['user_name'].split(',')[0]) >= 10: #DEBUG
+                    if int(d['user_name'].split(',')[0]) >= 20: #DEBUG
                         self.devices.append(copy.copy(d))
         else:
             self.devices = [{
@@ -143,14 +145,14 @@ class ManagerNode():
 
         self.current_lecture = None
         self.current_section = None
-        if database:
+        if is_database:
             # LECTURES
             self.lectures = requests.get('http://localhost:8003/apilocaladmin/api/v1/admin/lectures').json()
             for lecture in self.lectures:
                 active_lecture = 'http://localhost:8003/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid']
-                print(active_lecture)
+                # print(active_lecture)
                 res = requests.put('http://localhost:8003/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid'])
-                print(lecture['name'], res)
+                # print(lecture['name'], res)
                 if the_activity in lecture['name']:
                     if self.ROBOT == 'nao':
                         convert_lecture_to_flow_nao(lecture)
@@ -158,6 +160,7 @@ class ManagerNode():
                         convert_lecture_to_flow_robotod(lecture)
 
                     self.current_lecture = lecture
+                    self.conversion = json.load(open('lecture_files/%s/conversion.json' % self.current_lecture['name']))
                     self.first_section = json.loads(self.current_lecture['sectionsOrdering'])[0]
 
         rospy.spin() #spin() simply keeps python from exiting until this node is stopped
@@ -525,8 +528,17 @@ class ManagerNode():
         print('done waiting_robot', nao_message["action"])
 
     def robot_run_block(self, action):
+        # convert parameters to proper strings
+        new_action = copy.deepcopy(action)
+        for i, p in enumerate(action['parameters']):
+            for c_before, c_after in self.conversion.items():
+                if p.encode('utf-8') in c_before.encode('utf-8'):
+                    new_action['parameters'][i] = c_after
+                    break
+
         print('************ block ***************')
         print(action)
+        action = copy.deepcopy(new_action)
         print('*************** block *************')
         robot_message = {
             'action': 'run_behavior_and_sound',
@@ -946,6 +958,9 @@ class ManagerNode():
 
 if __name__ == '__main__':
     try:
+        if len(sys.argv) > 1:
+            the_activity = sys.argv[1]
+        print('Running manager with activity %s', the_activity)
         manager = ManagerNode()
         # manager.run_study()
     except rospy.ROSInterruptException:

@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 import pickle
 import pygame
 import time
@@ -18,6 +20,7 @@ import json
 import threading
 import subprocess
 import os
+from hebrew_tool import *
 
 
 class RobotodListenerNode():
@@ -100,7 +103,7 @@ class RobotodListenerNode():
             print('ERROR: message is not in json format.')
             return
 
-        action = str(message_dict['action'])
+        action = str(message_dict['action']).encode('utf-8')
         if 'parameters' in message_dict:
             parameters = message_dict['parameters']
         else:
@@ -115,6 +118,11 @@ class RobotodListenerNode():
             self.lip_filename = parameters[2]
         else:
             self.lip_filename = parameters[1][:-4] + '.csv'
+
+        # Convert filenames ro proper filenames
+        print(self.sound_filename)
+        self.sound_filename = convert_hebrew_to_ascii(self.sound_filename)
+        self.lip_filename = convert_hebrew_to_ascii(self.lip_filename)
 
         self.load_block(self.block_name)
         self.play()
@@ -176,6 +184,9 @@ class RobotodListenerNode():
                 self.sound_offset = play_block[0][1]
             else:
                 self.sound_offset = None
+
+        # convert hebrew filenames to proper filenames
+        self.sound_filename = convert_hebrew_to_ascii(self.sound_filename)
         self.load_files()
 
         if self.lip_angle:

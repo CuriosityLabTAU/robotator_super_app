@@ -249,6 +249,13 @@ def convert_lecture_to_flow_nao(lecture, the_lecture_hash=None):
         json.dump(study_flow, open('flow_files/%s.json' % lecture['name'], 'w+'))
 
 
+def convert_hebrew_to_ascii(s):
+    if isEnglish(s):
+        return s
+    else:
+        return s.encode('ascii', 'xmlcharrefreplace')
+
+
 def generate_text_to_speech(lecture_, the_path):
     for s, section_ in enumerate(lecture_['sections']):
         if section_['notes']:
@@ -256,6 +263,7 @@ def generate_text_to_speech(lecture_, the_path):
             if not os.path.exists(filename):
                 tts_heb(text=section_['notes'].encode('utf-8'),
                         filename=filename)
+    print('Adding lip csv ...')
     path_to_lip_csv(the_path)
 
 
@@ -275,7 +283,7 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
         lecture = json.load(open(the_path + the_file))
     # convert lecture json to activity json
 
-
+    print('Generating text to speech...')
     generate_text_to_speech(lecture, the_path)
 
     # go over sections, and create the json flow
