@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from os import system, listdir
 import json
+import shutil
 
 
 def is_english(s):
@@ -27,22 +28,29 @@ def convert_mp3_csv_to_proper_names(lecture_path):
     conversion = {}
 
     mp3_files = [f for f in listdir(lecture_path) if '.mp3' in f]
-    for mp3_file in mp3_files:
-        before_name = '\"%s/%s\"' % (lecture_path, mp3_file)
-        after_name = '%s/%s' % (lecture_path, convert_hebrew_to_ascii(mp3_file))
-        conversion[before_name.decode('utf-8')] = after_name
+    for i, mp3_file in enumerate(mp3_files):
+        before_name = '%s/%s' % (lecture_path, mp3_file)
+        after_name = '%s/%d.mp3' % (lecture_path, i) #convert_hebrew_to_ascii(mp3_file))
+        # conversion[before_name.decode('utf-8')] = after_name
+        conversion[before_name] = after_name
         if before_name == after_name:
             print('same name, dont copy.')
         else:
-            system('cp %s %s' % (before_name, after_name))
+            print('cp %s %s' % (before_name, after_name))
+            shutil.copy(before_name, after_name)
+            # system('cp %s %s' % (before_name, after_name))
 
     csv_files = [f for f in listdir(lecture_path) if '.csv' in f]
-    for csv_file in csv_files:
-        before_name = '\"%s/%s\"' % (lecture_path, csv_file)
-        after_name = '%s/%s' % (lecture_path, convert_hebrew_to_ascii(csv_file))
-        conversion[before_name.decode('utf-8')] = after_name
+    for i, csv_file in enumerate(csv_files):
+        before_name = '%s/%s' % (lecture_path, csv_file)
+        after_name = '%s/%d.csv' % (lecture_path, i) #convert_hebrew_to_ascii(csn_file))
+        # conversion[before_name.decode('utf-8')] = after_name
+        conversion[before_name] = after_name
         if before_name == after_name:
             print('same name, dont copy.')
         else:
-            system('cp %s %s' % (before_name, after_name))
+            print('cp %s %s' % (before_name, after_name))
+            shutil.copy(before_name, after_name)
+            # system('cp %s %s' % (before_name, after_name))
     json.dump(conversion, open('%s/conversion.json' % lecture_path, 'w+'))#, ensure_ascii=True)
+    print('DONE!')

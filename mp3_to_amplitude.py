@@ -64,7 +64,7 @@ def mp3_to_lip_csv(the_path, mp3_name):
     #plot_signal(signal1, rate1)
 
     rate2 = 30 # frequency of Patricc motion player
-    norm_factor = 50 # this is the optimal norm factor I found
+    norm_factor = 30 # CHANGED TODO 50 # this is the optimal norm factor I found
     signal2 = downsample(signal1, rate1, rate2, norm_factor)
 
     csv_name = mp3_name[:-4] + '.csv'
@@ -77,3 +77,5 @@ def path_to_lip_csv(the_path):
     for m in mp3_files:
         print(m)
         mp3_to_lip_csv(the_path, m)
+
+# path_to_lip_csv('/home/curious/PycharmProjects/run_general_robot_script/neo/sounds/')

@@ -97,7 +97,7 @@ def start_working(group_id, nao_ip):
     the_activity = select_activity()
 
     # run the manager
-    # run_thread(worker_manager)
+    run_thread(worker_manager)
 
     # start recording
     run_thread((worker_rosbag))

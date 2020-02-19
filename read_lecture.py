@@ -428,8 +428,19 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
             part['next'] = 'section_%s_robot_sleep' % section['name']
             parts.append(copy.copy(part))
 
-            after_response = 'section_%s_robot_resolution' % section['name']
+            # After response:
+            #  if 'text', there there are no right/wrong/same/different answers
+            resolution = True
             if 'text' in section['key']:
+                resolution = False
+            # if dodebate = False, move on
+            elif 'doDebate' in value:
+                if not value['doDebate']:
+                    resolution = False
+
+            if resolution:
+                after_response = 'section_%s_robot_resolution' % section['name']
+            else:
                 after_response = the_next_part
 
             part = copy.copy(base_robot_sleep)
@@ -478,13 +489,14 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
             else:
                 part['second'] = -1 # TODO: check
 
-            # robot resolution (given answers and speakers)
-            part = copy.copy(base_robot_resolution)
-            part['tag'] = 'section_%s_robot_resolution' % section['name']
-            part['done'] = {
-                'timeout': the_next_part,
-                'done': the_next_part
-            }
+            if resolution:
+                # robot resolution (given answers and speakers)
+                part = copy.copy(base_robot_resolution)
+                part['tag'] = 'section_%s_robot_resolution' % section['name']
+                part['done'] = {
+                    'timeout': the_next_part,
+                    'done': the_next_part
+                }
         part['next'] = the_next_part
         parts.append(copy.copy(part))
 

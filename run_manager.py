@@ -160,7 +160,10 @@ class ManagerNode():
                         convert_lecture_to_flow_robotod(lecture)
 
                     self.current_lecture = lecture
-                    self.conversion = json.load(open('lecture_files/%s/conversion.json' % self.current_lecture['name']))
+                    try:
+                        self.conversion = json.load(open('lecture_files/%s/conversion.json' % self.current_lecture['name']))
+                    except:
+                        self.conversion = None
                     self.first_section = json.loads(self.current_lecture['sectionsOrdering'])[0]
 
         rospy.spin() #spin() simply keeps python from exiting until this node is stopped
@@ -528,13 +531,14 @@ class ManagerNode():
         print('done waiting_robot', nao_message["action"])
 
     def robot_run_block(self, action):
-        # convert parameters to proper strings
         new_action = copy.deepcopy(action)
-        for i, p in enumerate(action['parameters']):
-            for c_before, c_after in self.conversion.items():
-                if p.encode('utf-8') in c_before.encode('utf-8'):
-                    new_action['parameters'][i] = c_after
-                    break
+        if self.conversion is not None:
+            # convert parameters to proper strings
+            for i, p in enumerate(action['parameters']):
+                for c_before, c_after in self.conversion.items():
+                    if p.encode('utf-8') in c_before.encode('utf-8'):
+                        new_action['parameters'][i] = c_after
+                        break
 
         print('************ block ***************')
         print(action)

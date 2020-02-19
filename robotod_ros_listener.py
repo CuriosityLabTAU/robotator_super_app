@@ -111,26 +111,27 @@ class RobotodListenerNode():
         print("PARSE_MESSAGE")
         print(str("self."+action+"("+str(parameters)+")"))
 
-        # TODO Shorashim change!!!
-        self.block_name = parameters[0]
-        self.sound_filename = parameters[1]
-        if len(parameters) > 2:
-            self.lip_filename = parameters[2]
-        else:
-            self.lip_filename = parameters[1][:-4] + '.csv'
+        if len(parameters) > 0:
+            # TODO Shorashim change!!!
+            self.block_name = parameters[0]
+            self.sound_filename = parameters[1]
+            if len(parameters) > 2:
+                self.lip_filename = parameters[2]
+            else:
+                self.lip_filename = parameters[1][:-4] + '.csv'
 
-        # Convert filenames ro proper filenames
-        print(self.sound_filename)
-        self.sound_filename = convert_hebrew_to_ascii(self.sound_filename)
-        self.lip_filename = convert_hebrew_to_ascii(self.lip_filename)
+            # Convert filenames ro proper filenames
+            print(self.sound_filename)
+            self.sound_filename = convert_hebrew_to_ascii(self.sound_filename)
+            self.lip_filename = convert_hebrew_to_ascii(self.lip_filename)
 
-        self.load_block(self.block_name)
-        self.play()
+            self.load_block(self.block_name)
+            self.play()
 
-        # self.play_sound()
-        # self.play_lip()
+            # self.play_sound()
+            # self.play_lip()
 
-        self.state_publisher.publish(data.data)
+            self.state_publisher.publish(data.data)
 
 
     def test_motors(self):
