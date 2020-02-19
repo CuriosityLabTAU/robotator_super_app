@@ -1,0 +1,5 @@
+Can you see the animal?
+\wait\
+An owl is hiding in the picture.
+It is camouflaged.
+\wait\

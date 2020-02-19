@@ -1,0 +1,4 @@
+Another animal is hiding in this picture.
+It is camouflaged as a leaf.
+Can you see it?
+\wait\

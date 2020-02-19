@@ -286,6 +286,8 @@ class ManagerNode():
                 self.robot_resolution(action)
             elif "wake_up" in action["action"]:
                 self.robot_wakeup(action)
+            elif action["action"] in ["init_facilitation"]:
+                self.init_facilitation(action)
 
     def get_current_answers(self, a_section):
         all_answers = requests.get('http://localhost:8003/apilocaladmin/api/v1/lecture/%s/answers' %
@@ -413,110 +415,6 @@ class ManagerNode():
         #         "parameters": ['Engage_%d' % self.current_speaker]
         #     }))
         #     time.sleep(1)
-
-    def robot_resolution(self, action):
-        self.is_sleeping = False
-        # first, aggregate data fron sensor and tablets
-        # do group-dynamics logic
-        # goal: find out whom to address
-
-        # there is only one tablet, continue
-        if len(self.devices) < 2:
-            self.run_study_action(self.actions[action["done"]["timeout"]])
-            return
-
-        # first guess: first two tablets
-        base_pair = [1, 2]
-
-        unspeaking_rank = copy.copy(base_pair)
-
-        # rule: find disagreeing tablets
-        pairs = self.find_disagree()
-        print('pairs from disagree', pairs)
-        self.log_publisher.publish(json.dumps({
-            'log': 'disagree_pairs',
-            'data': pairs
-        }))
-
-        # if there are disagreeing pairs, choose from them:
-        if len(pairs) > 0:
-            audio_file = 'robot_files/robotod/blocks/different_answers.mp3'
-        else:
-            audio_file = 'robot_files/robotod/blocks/same_answers.mp3'
-
-        #     if which_robot == 'nao':
-        #         self.robot_animated_text_to_speech({
-        #             'action': 'animated_text_to_speech',
-        #             'parameters': ['You gave different answers. Please discuss why.']
-        #         })
-        #     elif which_robot == 'robotod':
-        #         self.robot_animated_text_to_speech({
-        #             'action': 'animated_text_to_speech',
-        #             'parameters': ['robot_files/robotod/blocks/different_answers.new',
-        #                            'robot_files/robotod/blocks/different_answers.mp3']
-        #         })
-        #     self.finish_resolution(action)
-        #     return
-
-        if is_sensor:
-            # rule: find most unspoken people
-            unspeaking_rank, most_unspoken = self.find_rank()
-            print('unspeaking_rank', unspeaking_rank)
-            if most_unspoken >= 0:  # there is at least one speaker
-                self.log_publisher.publish(json.dumps({
-                    'log': 'unspeaking',
-                    'data': unspeaking_rank
-                }))
-                if len(pairs) == 0: # there are no disagreeing pairs, so choose the two most unspoken ones
-                    if len(unspeaking_rank) >= 2:
-                        pairs = [unspeaking_rank[:2]]
-                    else:
-                        pairs = copy.copy(base_pair)
-                else: # there are disagreeing pairs, choose the most unspoken ones
-                    best_pair = pairs[0]
-                    best_unspoken = 10 # more than twice the number of participants
-                    for p in pairs:
-                        if p[0] in unspeaking_rank and p[1] in unspeaking_rank:
-                            unspoken = unspeaking_rank.index(p[0]) + unspeaking_rank.index(p[1])
-                            if unspoken < best_unspoken:
-                                best_unspoken = unspoken
-                                best_pair = copy.copy(p)
-                    pairs = [best_pair]
-        print('pairs after sensor', pairs)
-
-        if len(pairs) == 0: # still no pairs, choose random
-            if self.number_of_tablets > 1:
-                pairs = [random.sample([(i+1) for i in range(self.number_of_tablets_done)], 2)]
-            else:
-                pairs = copy.copy(base_pair)
-        print('pairs after correction', pairs)
-
-        best_pair = random.choice(pairs)
-
-        if which_robot == 'nao':
-            # TODO check if disagree or agree
-            self.robot_animated_text_to_speech({
-                'action': 'animated_text_to_speech',
-                'parameters': ['You all gave the same answers. Can you think of a reason why you can be wrong?']
-            })
-        else:
-            self.robot_run_block({
-                'action': 'run_block',
-                'parameters': [#'robot_files/robotod/blocks/explain_5.new',
-                               'robot_files/robotod/blocks/address_pair_%s_%s.new' % (best_pair[0], best_pair[1]),
-                               audio_file, 'robot_files/robotod/blocks/explain_5.csv']
-            })
-
-        self.finish_resolution(action)
-
-    def finish_resolution(self, action):
-        # reset the counters
-        self.sensor_publisher.publish("C")
-        time.sleep(0.1)
-        self.sensor_publisher.publish("R")
-
-        # sleep
-        self.robot_sleep(action)
 
     def run_robot_behavior(self, nao_message):
         self.is_sleeping = False
@@ -663,7 +561,12 @@ class ManagerNode():
             self.finished_register = True
 
     def start(self):
-        self.first_section = json.loads(self.current_lecture['sectionsOrdering'])[0]
+        if self.current_lecture is None:
+            return
+        try:
+            self.first_section = json.loads(self.current_lecture['sectionsOrdering'])[0]
+        except:
+            print('ERROR', self.current_lecture)
 
         self.get_ok_devices()
 
@@ -958,6 +861,139 @@ class ManagerNode():
         action = {"action": "rest"}
         self.run_robot_behavior(action)
         print('THE END')
+
+# Facilitation
+    def init_facilitation(self, action):
+        # get user names
+        # run blocks: hello, all user names
+
+        self.robot_run_block({'parameters': [
+            'robot_files/robotod/blocks/explain_0.new',
+            'robot_files/robotod/blocks/hello.mp3'
+        ]})
+
+
+        users = [x['user_name'].split(',')[0] for x in self.devices]
+        print(users)
+        for u in users:
+            user_sound_filename = 'school_files/user_%s.mp3' % u
+            if os.path.exists(user_sound_filename):
+                self.robot_run_block({'parameters': [
+                    'robot_files/robotod/blocks/explain_0.new',
+                    user_sound_filename
+                ]})
+
+        next_action = copy.copy(self.actions[action['next']])
+        if next_action['tag'] == 'end':
+            self.the_end()
+        else:
+            self.run_study_action(next_action)
+
+
+    def robot_resolution(self, action):
+        self.is_sleeping = False
+        # first, aggregate data fron sensor and tablets
+        # do group-dynamics logic
+        # goal: find out whom to address
+
+        # there is only one tablet, continue
+        if len(self.devices) < 2:
+            self.run_study_action(self.actions[action["done"]["timeout"]])
+            return
+
+        # first guess: first two tablets
+        base_pair = [1, 2]
+
+        unspeaking_rank = copy.copy(base_pair)
+
+        # rule: find disagreeing tablets
+        pairs = self.find_disagree()
+        print('pairs from disagree', pairs)
+        self.log_publisher.publish(json.dumps({
+            'log': 'disagree_pairs',
+            'data': pairs
+        }))
+
+        # if there are disagreeing pairs, choose from them:
+        if len(pairs) > 0:
+            audio_file = 'robot_files/robotod/blocks/different_answers.mp3'
+        else:
+            audio_file = 'robot_files/robotod/blocks/same_answers.mp3'
+
+        #     if which_robot == 'nao':
+        #         self.robot_animated_text_to_speech({
+        #             'action': 'animated_text_to_speech',
+        #             'parameters': ['You gave different answers. Please discuss why.']
+        #         })
+        #     elif which_robot == 'robotod':
+        #         self.robot_animated_text_to_speech({
+        #             'action': 'animated_text_to_speech',
+        #             'parameters': ['robot_files/robotod/blocks/different_answers.new',
+        #                            'robot_files/robotod/blocks/different_answers.mp3']
+        #         })
+        #     self.finish_resolution(action)
+        #     return
+
+        if is_sensor:
+            # rule: find most unspoken people
+            unspeaking_rank, most_unspoken = self.find_rank()
+            print('unspeaking_rank', unspeaking_rank)
+            if most_unspoken >= 0:  # there is at least one speaker
+                self.log_publisher.publish(json.dumps({
+                    'log': 'unspeaking',
+                    'data': unspeaking_rank
+                }))
+                if len(pairs) == 0: # there are no disagreeing pairs, so choose the two most unspoken ones
+                    if len(unspeaking_rank) >= 2:
+                        pairs = [unspeaking_rank[:2]]
+                    else:
+                        pairs = copy.copy(base_pair)
+                else: # there are disagreeing pairs, choose the most unspoken ones
+                    best_pair = pairs[0]
+                    best_unspoken = 10 # more than twice the number of participants
+                    for p in pairs:
+                        if p[0] in unspeaking_rank and p[1] in unspeaking_rank:
+                            unspoken = unspeaking_rank.index(p[0]) + unspeaking_rank.index(p[1])
+                            if unspoken < best_unspoken:
+                                best_unspoken = unspoken
+                                best_pair = copy.copy(p)
+                    pairs = [best_pair]
+        print('pairs after sensor', pairs)
+
+        if len(pairs) == 0: # still no pairs, choose random
+            if self.number_of_tablets > 1:
+                pairs = [random.sample([(i+1) for i in range(self.number_of_tablets_done)], 2)]
+            else:
+                pairs = copy.copy(base_pair)
+        print('pairs after correction', pairs)
+
+        best_pair = random.choice(pairs)
+
+        if which_robot == 'nao':
+            # TODO check if disagree or agree
+            self.robot_animated_text_to_speech({
+                'action': 'animated_text_to_speech',
+                'parameters': ['You all gave the same answers. Can you think of a reason why you can be wrong?']
+            })
+        else:
+            self.robot_run_block({
+                'action': 'run_block',
+                'parameters': [#'robot_files/robotod/blocks/explain_5.new',
+                               'robot_files/robotod/blocks/address_pair_%s_%s.new' % (best_pair[0], best_pair[1]),
+                               audio_file, 'robot_files/robotod/blocks/explain_5.csv']
+            })
+
+        self.finish_resolution(action)
+
+    def finish_resolution(self, action):
+        # reset the counters
+        self.sensor_publisher.publish("C")
+        time.sleep(0.1)
+        self.sensor_publisher.publish("R")
+
+        # sleep
+        self.robot_sleep(action)
+
 
 
 if __name__ == '__main__':

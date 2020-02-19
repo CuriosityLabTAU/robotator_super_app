@@ -1,0 +1,3 @@
+There are three frogs that are camouflaged as leaves.
+Can you see them now?
+\wait\

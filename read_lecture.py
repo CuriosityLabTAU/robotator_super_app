@@ -342,13 +342,23 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
         section = [sec for sec in lecture['sections'] if sec['uuid'] == section_uuid][0]
         ordered_sections.append(copy.copy(section))
 
-
     study_flow = [{
           "tag": "start", "target": "robot",
           "action":"wake_up",
-          "next": 'section_%s_show_screen' % ordered_sections[0]['name']
+          "next": 'init_facilitation'
+        },
+        {
+            "tag": 'init_facilitation', 'target': 'robot',
+            'action': 'init_facilitation',
+            'next': 'section_%s_show_screen' % ordered_sections[0]['name']
         }
     ]
+
+    part = copy.copy(base_robot_animated_text)
+    part['parameters'] = [
+
+    ]
+
     print(lecture)
     print(lecture['sectionsOrdering'])
     for s, section in enumerate(ordered_sections):

@@ -259,12 +259,12 @@ class RobotodListenerNode():
                     new_item[2].angle = motor_commands[iter,1:]
 
                 # DEBUG
-                print('DEBUG')
-                print(new_item)
+                # print('DEBUG')
+                # print(new_item)
                 new_command = CommandPosition()
                 new_command.id = [i for i in range(1, 9)]
                 new_command.angle = list(new_item[2].angle)
-                print(new_command.angle)
+                # print(new_command.angle)
                 new_command.angle[4] -= np.pi / 2.0
                 new_command.angle[6] += np.pi / 2.0
                 # new_command.angle[3] = self.map_angles([1.8, 3.5], [1.8, 2.5], new_command.angle[3])

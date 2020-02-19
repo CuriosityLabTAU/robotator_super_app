@@ -102,7 +102,8 @@ def start_working(group_id, nao_ip):
     # start recording
     run_thread((worker_rosbag))
 
-
+    print('loading ...')
+    threading._sleep(5.0)
 
     run_thread(worker_start_study)
 
