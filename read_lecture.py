@@ -403,7 +403,7 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
                         # select the behavior to be as long as the sound file
                         # a little shorter, so there won't be movement without sound
                         audio_file_length = np.floor(float(mp3_file_length(audio_file)))
-                        closest_block_length = int(audio_file_length / 5.0) * 5 - 5
+                        closest_block_length = int(audio_file_length / 5.0) * 5
                         if closest_block_length < 0:
                             closest_block_length = 0
                         block_file = 'robot_files/robotod/blocks/explain_%d.new' % closest_block_length

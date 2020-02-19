@@ -1,48 +1,17 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
 import pickle
-import pygame
-import time
-import rospy
-from dynamixel_hr_ros.msg import *
-from std_msgs.msg import String
 import numpy as np
-from scipy.signal import *
-import matplotlib.pyplot as plt
-from copy import deepcopy
-import csv
-from scipy.interpolate import interp1d
-from scipy.signal import butter, lfilter, filtfilt  #omer
-import matplotlib.pyplot as plt
-from datetime import datetime
 from copy import copy
-import json
-import threading
-import subprocess
-import os
-from hebrew_tool import *
+from scipy.signal import hann, convolve
+from datetime import timedelta
+from dynamixel_hr_ros.msg import *
 
 
-class RobotodListenerNode():
+
+class block():
 
     def __init__(self):
 
         self.base_path = '.'
-
-        self.rfids = [None for i in range(5)]
-        self.rfid_prev = [None for i in range(5)]
-        self.rfid_change = [None for i in range(5)]
-        self.is_rfid_change = False
-
-        # self.publisher = rospy.Publisher('/dxl/command_position', CommandPosition, queue_size=10)
-        self.publisher = rospy.Publisher('/patricc_motion_control', CommandPosition, queue_size=10)
-        self.rifd_sub = rospy.Subscriber('/rfid', String, self.callback)
-        rospy.Subscriber('/to_robotod', String, self.callback_to_robotod)
-        self.state_publisher = rospy.Publisher('/robotod_state', String, queue_size=1)
-
-
-        pygame.init()
-        pygame.mixer.init()
 
         self.sound_filename = None
         self.sound_offset = 0.0
@@ -53,127 +22,30 @@ class RobotodListenerNode():
         self.duration = 0.0
 
         self.lip_angle = []
-        self.motor_list  = {'skeleton': [0, 1, 4, 5, 6, 7], 'head_pose': [2], 'lip': [3], 'full': [0, 1, 2, 3, 4, 5, 6, 7], 'full_idx': [1, 2, 3, 4, 5, 6, 7, 8]}
-        self.robot_angle_range = [[0.0, 5.0], #[1.1, 3.9],
+        self.motor_list = {'skeleton': [0, 1, 4, 5, 6, 7], 'head_pose': [2], 'lip': [3],
+                           'full': [0, 1, 2, 3, 4, 5, 6, 7], 'full_idx': [1, 2, 3, 4, 5, 6, 7, 8]}
+        self.robot_angle_range = [[0.0, 5.0],  # [1.1, 3.9],
                                   [2.8, 1.6],
-                                  [2, 3.3], [1.8, 2.5], #[2.2, 2.5]#[1.8, 2.5], #[2.5, 3.5], #
+                                  [2, 3.3], [1.8, 2.5],  # [2.2, 2.5]#[1.8, 2.5], #[2.5, 3.5], #
                                   [4.1, 0.9], [1.3, 3],
                                   [1, 4.1], [2.5, 3.75]]
-        self.sensor_angle_range = [[-np.pi, np.pi], [0, np.pi/2],
+        self.sensor_angle_range = [[-np.pi, np.pi], [0, np.pi / 2],
                                    [-0.2, 0.2], [0, 254],
-                                   [-np.pi/2, np.pi/2], [np.pi/2, 0],
-                                   [-np.pi/2, np.pi/2], [0, np.pi/2]]
+                                   [-np.pi / 2, np.pi / 2], [np.pi / 2, 0],
+                                   [-np.pi / 2, np.pi / 2], [0, np.pi / 2]]
         self.robot_kinect_angles = [0, 1, 0, 0, 2, 3, 4, 5]
 
         self.robot_motors_no_mouth = [0, 1, 2, 4, 5, 6, 7]
         self.robot_motor_mouth = 4
 
         self.motor_speed = [1] * 8
-        rospy.init_node('block_player')
-
-
-        # self.initiailize_robotod()
-        rospy.spin()
-
-    def run_script(self, script):
-        os.system(script)
-        # x = subprocess.check_output(script.split(' '))
-        return
-
-    def initiailize_robotod(self):
-        scripts = {
-            # 'roscore': 'roscore',
-            # 'rfid': 'rosrun rosserial_python serial_node.py /dev/ttyACM0',
-            'expose': 'python ~/PycharmProjects/twisted_server_ros_2_0/scripts/expose.py',
-            'motion_control': 'python ~/PycharmProjects/twisted_server_ros_2_0/scripts/motion_control.py'
-        }
-
-        for script in scripts.values():
-            t = threading.Thread(target=self.run_script, args=(script,))
-            t.start()
-            threading._sleep(1.0)
-
-
-    def callback_to_robotod(self, data):
-        message = data.data
-        try:
-            message_dict = json.loads(message)
-        except:
-            print('ERROR: message is not in json format.')
-            return
-
-        action = str(message_dict['action']).encode('utf-8')
-        if 'parameters' in message_dict:
-            parameters = message_dict['parameters']
-        else:
-            parameters = ""
-        print("PARSE_MESSAGE")
-        print(str("self."+action+"("+str(parameters)+")"))
-
-        if len(parameters) > 0:
-            # TODO Shorashim change!!!
-            self.block_name = parameters[0]
-            self.sound_filename = parameters[1]
-            if len(parameters) > 2:
-                self.lip_filename = parameters[2]
-            else:
-                self.lip_filename = parameters[1][:-4] + '.csv'
-
-            # Convert filenames ro proper filenames
-            print(self.sound_filename)
-            self.sound_filename = convert_hebrew_to_ascii(self.sound_filename)
-            self.lip_filename = convert_hebrew_to_ascii(self.lip_filename)
-
-            self.load_block(self.block_name)
-            self.play()
-
-            # self.play_sound()
-            # self.play_lip()
-
-            self.state_publisher.publish(data.data)
-
-
-    def test_motors(self):
-        the_range = np.sin(np.linspace(0.0, 2.0 * np.pi, 200)) * 0.5 + 0.5
-        dt = 1.0 / 30.0
-        for j in range(the_range.shape[0]):
-            new_command = CommandPosition()
-            new_command.id = [i for i in range(1, 9)]
-            new_command.angle = [self.robot_angle_range[i][0] + the_range[j] * (self.robot_angle_range[i][1] - self.robot_angle_range[i][0]) for i in range(8)]
-            new_command.speed = [2] * 8
-
-            self.publisher.publish(new_command)
-            time.sleep(dt)
-
-    def callback(self, data):
-        msg = data.data
-        for i in range(5):
-            rfid = msg[i*8:(i+1)*8]
-            if '---' in rfid:
-                self.rfids[i] = None
-            else:
-                try:
-                    self.rfids[i] = rfid_to_prop[rfid]
-                except:
-                    print(msg)
-
-
-    def update_rifd(self):
-        self.is_rfid_change = False
-        for i in range(5):
-            if self.rfids[i] != self.rfid_prev[i]:
-                self.rfid_change[i] = self.rfid_prev[i]
-                self.is_rfid_change = True
-            else:
-                self.rfid_change[i] = None
-        self.rfid_prev = deepcopy(self.rfids)
-        return self.is_rfid_change
 
     # block things
     def load_block(self, block_filename = 'blocks/block_spider_1'):
         self.filename = block_filename
         with open(self.filename, 'rb') as input:
             play_block = pickle.load(input)
+        self.play_block = play_block
 
         self.full_msg_list = self.clean_msg_list(play_block[1:])
 
@@ -185,8 +57,6 @@ class RobotodListenerNode():
             else:
                 self.sound_offset = None
 
-        # convert hebrew filenames to proper filenames
-        self.sound_filename = convert_hebrew_to_ascii(self.sound_filename)
         self.load_files()
 
         if self.lip_angle:
@@ -194,6 +64,23 @@ class RobotodListenerNode():
 
         self.duration = (self.full_msg_list[-1][0] - self.full_msg_list[0][0]).total_seconds()
         print('Block: ', block_filename, '. Duration:', self.duration, ' sound: ', self.sound_filename)
+
+    def save_stitched_block(self, filename, motor_commands):
+        new_block = []
+        new_block.append(self.play_block[0])
+        basic_item = copy(self.play_block[1])
+        cmd_pos = CommandPosition()
+
+        for i, m in enumerate(motor_commands):
+            new_cmd_pos = copy(cmd_pos)
+            new_cmd_pos.angle = motor_commands[i, 1:]
+            new_item = (
+                    basic_item[0] + timedelta(seconds=motor_commands[i, 0]),
+                    basic_item[1],
+                    new_cmd_pos
+            )
+            new_block.append(new_item)
+        pickle.dump(new_block, open(filename, 'w+'))
 
     def clean_msg_list(self, m_list):
         new_list = []
@@ -549,6 +436,18 @@ class RobotodListenerNode():
 
         return motor_commands
 
+    def add_blocks(self, motor_command1, motor_command2):
+        new_motor_commands = np.concatenate((motor_command1, motor_command2))
+        t = 0
+        j = motor_command1.shape[0]
+        for i, m in enumerate(motor_command2):
+            last_time = motor_command1[-1, 0]
+            new_addition = motor_command2[i, 0]
+            new_motor_commands[j, 0] = last_time + new_addition
+            j += 1
+
+        return new_motor_commands
+
     def cut_sub_block(self, start=0.0, end=-1.0):
         sub_block = play_block()
         sub_block.base_path = self.base_path
@@ -577,78 +476,35 @@ class RobotodListenerNode():
         return sub_block
 
 
+combos = [
+    [20, 10],
+    [10, 15],
+    [25, 10],
+    [30, 10],
+    [25, 20],
+    [20, 30],
+    [40, 15],
+    [30, 30],
+    [45, 20],
+    [40, 30]
+]
 
+for c in combos:
+    print('-------', c[0], c[1], c[0]+c[1])
+    filename_1 = 'robot_files/robotod/blocks/explain_%d.new' % c[0]
+    filename_2 = 'robot_files/robotod/blocks/explain_%d.new' % c[1]
+    filename_3 = 'robot_files/robotod/blocks/explain_%d.new' % (c[0] + c[1])
 
-    # behavioral filters
-    def behavioral_filters(self, filtered_motor_commands):
-        behavioral_motor_commands = np.copy(filtered_motor_commands)
-        for d in range(filtered_motor_commands.shape[1]):
-            # convert to velocity profile
-            velocty_profiles = np.diff(filtered_motor_commands[:, d])
+    block_1 = block()
+    block_1.load_block(filename_1)
+    mc_1 = block_1.stitch_blocks(block_before=filename_2)
 
-            # find zero velocity points
-            v_zero = (np.diff(np.sign(np.diff(velocty_profiles))) > 0).nonzero()[0] + 1 # local min
-            t_pose = np.where(np.abs(velocty_profiles[v_zero]) < 0.1)[0]
+    block_2 = block()
+    block_2.load_block(filename_2)
+    mc_2 = block_2.stitch_blocks(block_after=filename_1)
 
-            behavioral_velocity_profile = np.copy(velocty_profiles)
-            # apply filter (while maintaining area)
-            for i in range(1, t_pose.shape[0]):
-                t_pose_start = t_pose[i-1]
-                t_pose_end = t_pose[i]
-                duration_pose = v_zero[t_pose_end] - v_zero[t_pose_start]
-                v_pose = velocty_profiles[v_zero[t_pose_start]:v_zero[t_pose_end]]
-                area = np.sum(v_pose)
+    new_motor_commands = block_1.add_blocks(mc_1, mc_2)
+    block_1.save_stitched_block(filename_3, new_motor_commands)
 
-                # filter for up-down
-                behavioral_pose = np.copy(v_pose)
-                mid_duration = int(np.round(duration_pose/2.0))
-                v_0 = v_pose[0]
-                v_1 = v_pose[-1]
-                max_v = (area - mid_duration * (v_0 + v_1)/2.02) / mid_duration
-
-                first_half = behavioral_pose[:mid_duration].shape[0]
-                second_half = behavioral_pose[mid_duration:].shape[0]
-                behavioral_pose[:mid_duration] = np.linspace(v_pose[0], max_v, num=first_half)
-                behavioral_pose[mid_duration:] = np.linspace(max_v, v_pose[-1], num=second_half)
-
-                behavioral_velocity_profile[v_zero[t_pose_start]:v_zero[t_pose_end]] = behavioral_pose
-
-                # plt.plot(v_pose)
-                # plt.title('area: %2.3f, num_points: %d' % (np.sum(v_pose), v_pose.shape[0]))
-                # plt.show()
-                # plt.plot(behavioral_pose)
-                # plt.title('area: %2.3f, num_points: %d' % (np.sum(behavioral_pose), behavioral_pose.shape[0]))
-                # plt.show()
-                # print('done')
-
-            plt.plot(velocty_profiles)
-            plt.title('area: %2.3f, num_points: %d' % (np.sum(velocty_profiles), velocty_profiles.shape[0]))
-            #plt.show()
-            plt.plot(behavioral_velocity_profile)
-            plt.title('area: %2.3f, num_points: %d' % (np.sum(behavioral_velocity_profile), behavioral_velocity_profile.shape[0]))
-            #plt.show()
-            print('done')
-
-            # find the positions
-            for i in range(1, behavioral_velocity_profile.shape[0]):
-                behavioral_motor_commands[i, d] = behavioral_motor_commands[i-1, d] + behavioral_velocity_profile[i] / 30.0
-
-        return behavioral_motor_commands
-
-try:
-    # from command line: first input is an optional nao_ip
-    if len(sys.argv) > 1:
-        nao = RobotodListenerNode(sys.argv[1])
-    else:
-        nao = RobotodListenerNode()
-except rospy.ROSInterruptException:
-    pass
-# block_player = play_block()
-# block_player.test_motors()
-# block_player.lip_filename = 'sounds/fuzzy/fuzzy_banana.csv'
-# block_player.sound_filename = 'sounds/fuzzy/fuzzy_banana.mp3'
-# block_player.load_block(block_filename='blocks/point_1.new')
-# motor_commands = block_player.convert_to_motor_commands()
-# filtered_motor_commands = block_player.edit(motor_commands)
-# block_player.play(motor_commands=filtered_motor_commands)
-
+    block_final = block()
+    block_final.load_block(filename_3)
