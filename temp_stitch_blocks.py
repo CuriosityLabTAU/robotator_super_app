@@ -4,7 +4,7 @@ from copy import copy
 from scipy.signal import hann, convolve
 from datetime import timedelta
 from dynamixel_hr_ros.msg import *
-
+import pandas as pd
 
 
 class block():
@@ -508,3 +508,13 @@ for c in combos:
 
     block_final = block()
     block_final.load_block(filename_3)
+
+    filename_1 = 'robot_files/robotod/blocks/explain_%d.csv' % c[0]
+    filename_2 = 'robot_files/robotod/blocks/explain_%d.csv' % c[1]
+    filename_3 = 'robot_files/robotod/blocks/explain_%d.csv' % (c[0] + c[1])
+
+    x1 = pd.DataFrame.from_csv(filename_1)
+    x2 = pd.DataFrame.from_csv(filename_2)
+    x3 = pd.concat([x1, x2])
+    x3.to_csv(filename_3)
+
