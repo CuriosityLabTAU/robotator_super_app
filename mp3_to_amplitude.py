@@ -78,4 +78,4 @@ def path_to_lip_csv(the_path):
         print(m)
         mp3_to_lip_csv(the_path, m)
 
-# path_to_lip_csv('/home/curious/PycharmProjects/run_general_robot_script/neo/sounds/')
+# path_to_lip_csv('/home/curious/PycharmProjects/run_general_robot_script/roboroots/01_fuzzy/sounds/')

@@ -259,10 +259,11 @@ def convert_hebrew_to_ascii(s):
 def generate_text_to_speech(lecture_, the_path):
     for s, section_ in enumerate(lecture_['sections']):
         if section_['notes']:
-            filename = '%ssection_%s.mp3' % (the_path, section_['name'])
-            if not os.path.exists(filename):
-                tts_heb(text=section_['notes'].encode('utf-8'),
-                        filename=filename)
+            if len(section_['notes'].strip()) > 0:
+                filename = '%ssection_%s.mp3' % (the_path, section_['name'])
+                if not os.path.exists(filename):
+                    tts_heb(text=section_['notes'].encode('utf-8'),
+                            filename=filename)
     print('Adding lip csv ...')
     path_to_lip_csv(the_path)
 
@@ -382,14 +383,17 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
                 value['timeLimit'] = 30
             part['duration'] = int(value['timeLimit'])
             part['response'] = 1 # TODO
-        elif 'canRespond' in value:
+        elif section['key'] in ['text']:
+            part['activity_type'] = 'text'
+
+        if 'canRespond' in value:
             if value['canRespond']:
                 part['response'] = 1
                 part['duration'] = int(value['timeLimit'])
 
         # robot speech is only if there are notes
         if section['notes']:
-            if len(section['notes']) > 5:
+            if len(section['notes'].strip()) > 5:
                 part['next'] = 'section_%s_robot_instruction' % section['name']
                 parts.append(copy.copy(part))
 
