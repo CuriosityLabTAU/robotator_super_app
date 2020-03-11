@@ -107,8 +107,8 @@ class RobotodListenerNode():
             parameters = message_dict['parameters']
         else:
             parameters = ""
-        print("PARSE_MESSAGE")
-        print(str("self."+action+"("+str(parameters)+")"))
+        # print("PARSE_MESSAGE")
+        # print(str("self."+action+"("+str(parameters)+")"))
 
         if len(parameters) > 0:
             # TODO Shorashim change!!!

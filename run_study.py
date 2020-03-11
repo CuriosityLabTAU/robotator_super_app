@@ -81,12 +81,15 @@ def start_working(group_id, nao_ip):
             print(i, lecture['name'], lecture['uuid'])
             result = requests.put(
                 'http://localhost:8003/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid']).json()
-            if not result['active']:
+            if result['active']:
                 requests.put(
                     'http://localhost:8003/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid']).json()
 
         x = raw_input('Select lecture to run ...')
         x = int(x)
+        requests.put(
+            'http://localhost:8003/apilocaladmin/api/v1/admin/lectures/%s/active' % lectures[x]['uuid']).json()
+        raw_input('press any key to start ...')
         return lectures[x]['name']
 
     # first, run the tablet coordinator, backend and then frontend
@@ -109,7 +112,7 @@ def start_working(group_id, nao_ip):
     the_activity = select_activity()
 
     # run the manager11
-    # run_thread(worker_manager)
+    run_thread(worker_manager)
 
     # start recording
     run_thread((worker_rosbag))

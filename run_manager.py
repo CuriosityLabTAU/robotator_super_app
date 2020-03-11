@@ -344,6 +344,7 @@ class ManagerNode():
         if info['response']:
             print('tablet_actions', 'response', info)
             duration = info['duration']
+            internal = 'internal' in info
 
             current_answers = self.get_current_answers(current_section)
 
@@ -364,7 +365,8 @@ class ManagerNode():
                         done_message = {'action': 'participant_done',
                                         'client_ip': answer['device_id'],
                                         'answer': answer['answer'],
-                                        'correct': correct
+                                        'correct': correct,
+                                        'internal': internal
                                         }
                         time.sleep(0.1)
                         self.participant_done(done_message)
@@ -685,15 +687,12 @@ class ManagerNode():
         self.count_done = 0
         self.tablets_done[device_id] = True
         self.tablets_mark[device_id] = data_json['answer']
-        print(self.tablets_done.values())
         for value in self.tablets_done.values():
             if value:
                 self.count_done += 1
-        print('count done', self.count_done, self.number_of_tablets_done)
         if self.count_done >= self.number_of_tablets_done:
             try:
                 self.sleep_timer.cancel()
-                print("self.sleep_timer.cancel()")
             except:
                 print("failed self.sleep_timer_cancel")
             self.count_done = 0
@@ -701,6 +700,10 @@ class ManagerNode():
             # TODO CHANGE GOREN new facilitation
             # threading.Thread(target=self.run_study_action, args=[self.actions[self.robot_end_signal['done']]]).start()
             print("audience_done")
+            if data_json['internal']:   # meaning its an internal screen, not part of the activity
+                threading.Thread(target=self.run_study_action,
+                                 args=[self.actions[self.robot_end_signal['done']]]).start()
+                return
 
         # TODO CHANGE GOREN new facilitation
         actions = self.facilitation.update_state(answer_={
@@ -1107,12 +1110,22 @@ class ManagerNode():
                             #   a section of sleep
                             tablet_action = copy.copy(base_tablet_action)
                             tablet_action['tag'] = current_tag + '_debate_tablet'
-                            tablet_action['next'] = current_tag + '_debate_explain'
+                            tablet_action['next'] = current_tag + '_debate_user'
                             tablet_action['screen_name'] = 'generic_wait_for_explanation'
                             tablet_action['answers'] = [{'text': 'done', 'truth': False}]
                             tablet_action['activity'] = 'quiz'
+                            tablet_action['response'] = True
+                            tablet_action['duration'] = 60 # Base explanation time
+                            tablet_action['internal'] = True
                             self.actions[tablet_action['tag']] = copy.copy(tablet_action)
                             first_seq_action = copy.copy(tablet_action['tag'])
+
+                            user_action = copy.copy(base_robot_animated_text)
+                            user_action['tag'] = current_tag + '_debate_user'
+                            user_action['next'] = current_tag + '_debate_explain'
+                            user_action['parameters'] = find_appropriate_csv(
+                                'school_files/user_%s.mp3' % user)
+                            self.actions[user_action['tag']] = copy.copy(user_action)
 
                             explain_action = copy.copy(base_robot_animated_text)
                             explain_action['tag'] = current_tag + '_debate_explain'
