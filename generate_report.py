@@ -31,9 +31,9 @@ print(bag_filename)
 bag = rosbag.Bag(bag_filename)
 data = {}
 total_speak = 0
-for topic, msg, t in bag.read_messages(topics=['/omer_data', '/omer_speaker_data']):
+for topic, msg, t in bag.read_messages(topics=['/send_data', '/send_speaker_data']):
     # print(topic, msg)
-    if topic == '/omer_data':
+    if topic == '/send_data':
         new_data = parse_data(msg)
         for k, v in new_data.items():
             if k not in data:
@@ -46,9 +46,9 @@ for topic, msg, t in bag.read_messages(topics=['/omer_data', '/omer_speaker_data
             for i in data[k].keys():
                 if i != 'Speak':
                     data[k][i].append(v[i])
-    if topic == '/omer_speaker_data':
+    if topic == '/send_speaker_data':
         new_data = json.loads(msg.data)
-        id = 'PersonID:%d' % new_data['PersonID']
+        id = 'person_id:%d' % new_data['person_id']
         if id not in data:
             data[id] = {
                     'Engagement': [],

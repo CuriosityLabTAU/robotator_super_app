@@ -7,6 +7,63 @@ import os
 import subprocess
 import numpy as np
 from mp3_to_amplitude import path_to_lip_csv
+from pydub import AudioSegment
+
+base_robot_animated_text = {
+    'tag': 'tag',
+    'target': 'robot',
+    'action': 'run_block',
+    'parameters': ['/home/curious/PycharmProjects/run_general_robot_script/shorashim/robotod/blocks/Explain_4.new',
+                   '/home/curious/PycharmProjects/run_general_robot_script/shorashim/robotod/sounds/00.mp3'],
+    'next': 'next',
+    'debug': 'debug'
+}
+
+base_robot_sleep = {
+    'tag': 'tag',
+    'target': 'robot',
+    'action': 'sleep',
+    'seconds': 90,
+    'done': {
+        'timeout': 'timeout',
+        'done': 'done'
+    },
+    'next': 'next',
+    'debug': 'debug'
+}
+
+base_robot_resolution = {
+    'tag': 'tag',
+    'target': 'robot',
+    'action': 'resolution',
+    'seconds': 15,
+    'done': {
+        'timeout': 'timeout',
+        'done': 'done'
+    },
+    'next': 'next',
+    'debug': 'debug'
+}
+
+base_tablet_action = {
+    'tag': 'tag',
+    'target': 'tablet',
+    'action': 'show_screen',
+    'screen_name': 'screen_name',
+    'activity': 'activity',
+    'activity_type': 'activity_type',
+    'duration': 0,
+    'response': 0,
+    'tablets': [1,2,3,4,5],
+    'next': 'next'
+}
+
+base_debate = []
+base_debate.append(copy.copy(base_tablet_action))
+base_debate.append(copy.copy(base_robot_animated_text))
+base_debate.append((copy.copy(base_robot_sleep)))
+
+
 
 
 def mp3_file_length(filename):
@@ -35,26 +92,6 @@ def print_part(part_):
 
 
 def convert_lecture_to_flow_nao(lecture, the_lecture_hash=None):
-    the_path = 'lecture_files/'
-    # the_lecture_hash = '60aa4b40-765d-11e9-b4b4-cf18aea23797'
-    # the_lecture_hash = 'eff1b350-7640-11e9-b4b4-cf18aea23797'
-    # the_lecture_hash = 'f6782e00-7660-11e9-b4b4-cf18aea23797'
-    # the_lecture_hash = '7ee48240-c8a3-11e9-962c-efd40309cb4c'
-    if the_lecture_hash:
-        the_file = the_lecture_hash + '/' + the_lecture_hash + '.json'
-        lecture = json.load(open(the_path + the_file))
-    # convert lecture json to activity json
-
-    def generate_text_for_speech(lecture_):
-        for s, section_ in enumerate(lecture['sections']):
-            if section_['notes']:
-                f = open('speech_files/section_%s.txt' % section_['name'], 'w+')
-                f.write(section_['notes'].encode('utf-8'))
-                f.close()
-
-    generate_text_for_speech(lecture)
-
-    # go over sections, and create the json flow
     base_robot_action = {
         'tag': 'tag',
         'target': 'robot',
@@ -72,7 +109,6 @@ def convert_lecture_to_flow_nao(lecture, the_lecture_hash=None):
         'next': 'next',
         'debug': 'debug'
     }
-
 
     base_robot_sleep = {
         'tag': 'tag',
@@ -109,9 +145,31 @@ def convert_lecture_to_flow_nao(lecture, the_lecture_hash=None):
         'activity_type': 'activity_type',
         'duration': 0,
         'response': 0,
-        'tablets': [1,2,3,4,5],
+        'tablets': [1, 2, 3, 4, 5],
         'next': 'next'
     }
+
+    the_path = 'lecture_files/'
+    # the_lecture_hash = '60aa4b40-765d-11e9-b4b4-cf18aea23797'
+    # the_lecture_hash = 'eff1b350-7640-11e9-b4b4-cf18aea23797'
+    # the_lecture_hash = 'f6782e00-7660-11e9-b4b4-cf18aea23797'
+    # the_lecture_hash = '7ee48240-c8a3-11e9-962c-efd40309cb4c'
+    if the_lecture_hash:
+        the_file = the_lecture_hash + '/' + the_lecture_hash + '.json'
+        lecture = json.load(open(the_path + the_file))
+    # convert lecture json to activity json
+
+    def generate_text_for_speech(lecture_):
+        for s, section_ in enumerate(lecture['sections']):
+            if section_['notes']:
+                f = open('speech_files/section_%s.txt' % section_['name'], 'w+')
+                f.write(section_['notes'].encode('utf-8'))
+                f.close()
+
+    generate_text_for_speech(lecture)
+
+    # go over sections, and create the json flow
+
 
     # study_flow
     ordered_sections = []
@@ -264,6 +322,26 @@ def generate_text_to_speech(lecture_, the_path):
                 if not os.path.exists(filename):
                     tts_heb(text=section_['notes'].encode('utf-8'),
                             filename=filename)
+
+        # try:
+        #     # TODO CHANGE GOREN
+        #     if section_['value']:
+        #         value = json.loads(section_['value'])
+        #         if value['answers']:
+        #             for a in value['answers']:
+        #                 if a['truth']:
+        #                     filename = '%ssection_%s_correct_temp.mp3' % (the_path, section_['name'])
+        #                     if not os.path.exists(filename):
+        #                         tts_heb(text=a['text'].encode('utf-8'),
+        #                                 filename=filename)
+        #
+        #                     mp3_after = AudioSegment.from_mp3(filename)
+        #                     mp3_before = AudioSegment.from_mp3('robot_files/robotod/blocks/speech_correct.mp3')
+        #                     mp3_merge = mp3_before + mp3_after
+        #                     mp3_merge.export('%ssection_%s_correct.mp3' % (the_path, section_['name']), format='mp3')
+        # except:
+        #     print('ERROR in generating correct answer speech')
+
     print('Adding lip csv ...')
     path_to_lip_csv(the_path)
 
@@ -288,54 +366,7 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
     generate_text_to_speech(lecture, the_path)
 
     # go over sections, and create the json flow
-    base_robot_animated_text = {
-        'tag': 'tag',
-        'target': 'robot',
-        'action': 'run_block',
-        'parameters': ['/home/curious/PycharmProjects/run_general_robot_script/shorashim/robotod/blocks/Explain_4.new',
-                       '/home/curious/PycharmProjects/run_general_robot_script/shorashim/robotod/sounds/00.mp3'],
-        'next': 'next',
-        'debug': 'debug'
-    }
 
-    base_robot_sleep = {
-        'tag': 'tag',
-        'target': 'robot',
-        'action': 'sleep',
-        'seconds': 90,
-        'done': {
-            'timeout': 'timeout',
-            'done': 'done'
-        },
-        'next': 'next',
-        'debug': 'debug'
-    }
-
-    base_robot_resolution = {
-        'tag': 'tag',
-        'target': 'robot',
-        'action': 'resolution',
-        'seconds': 15,
-        'done': {
-            'timeout': 'timeout',
-            'done': 'done'
-        },
-        'next': 'next',
-        'debug': 'debug'
-    }
-
-    base_tablet_action = {
-        'tag': 'tag',
-        'target': 'tablet',
-        'action': 'show_screen',
-        'screen_name': 'screen_name',
-        'activity': 'activity',
-        'activity_type': 'activity_type',
-        'duration': 0,
-        'response': 0,
-        'tablets': [1,2,3,4,5],
-        'next': 'next'
-    }
 
     # study_flow
     ordered_sections = []
@@ -391,6 +422,18 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
                 part['response'] = 1
                 part['duration'] = int(value['timeLimit'])
 
+        # If it's a quiz, save also the answer
+        # and prepare a part that says the correct answer
+        if section['key'] in ['quiz']:
+            part['answers'] = value['answers']
+
+            # says the correct answer
+            correct_part = copy.copy(part_animated_speech(the_path, {'name': section['name'] + '_correct'}))
+            correct_part['tag'] = part['tag'] + '_correct'
+            parts.append(correct_part)
+
+
+
         # robot speech is only if there are notes
         if section['notes']:
             if len(section['notes'].strip()) > 5:
@@ -438,6 +481,7 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
             student_respond = section_value['canRespond']
         elif section['key'] in ['quiz', 'imageQuestion']:
             student_respond = True
+
         if student_respond:
             part['next'] = 'section_%s_robot_sleep' % section['name']
             parts.append(copy.copy(part))
@@ -511,6 +555,8 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
                     'timeout': the_next_part,
                     'done': the_next_part
                 }
+
+
         part['next'] = the_next_part
         parts.append(copy.copy(part))
 
@@ -531,3 +577,43 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
               "next": 'end'
             })
     json.dump(study_flow, open('flow_files/%s.json' % lecture['name'], 'w+'))
+
+
+def find_appropriate_csv(audio_file):
+    # select the behavior to be as long as the sound file
+    # a little shorter, so there won't be movement without sound
+    audio_file_length = np.floor(float(mp3_file_length(audio_file)))
+    closest_block_length = int(audio_file_length / 5.0) * 5
+    if closest_block_length < 0:
+        closest_block_length = 0
+    block_file = 'robot_files/robotod/blocks/explain_%d.new' % closest_block_length
+    if not os.path.exists(block_file):
+        block_file = 'robot_files/robotod/blocks/Explain_4.new'
+    lip_file = 'robot_files/robotod/blocks/explain_%d.csv' % closest_block_length
+    return [block_file, audio_file, lip_file]
+
+
+def part_animated_speech(the_path, section):
+    part = copy.copy(base_robot_animated_text)
+    # find relevant mp3 file
+    # if there is no corresponding block file
+    # -- estimate mp3 length
+    # -- find appropriate block file according to length
+    audio_file = '%ssection_%s.mp3' % (the_path, section['name'])
+    if not os.path.exists(audio_file):
+        print('ERROR: no audio file for the notes. ', audio_file)
+        audio_file = 'example.mp3'
+    block_file = '%ssection_%s.new' % (the_path, section['name'])
+    if not os.path.exists(block_file):
+        # select the behavior to be as long as the sound file
+        # a little shorter, so there won't be movement without sound
+        audio_file_length = np.floor(float(mp3_file_length(audio_file)))
+        closest_block_length = int(audio_file_length / 5.0) * 5
+        if closest_block_length < 0:
+            closest_block_length = 0
+        block_file = 'robot_files/robotod/blocks/explain_%d.new' % closest_block_length
+        if not os.path.exists(block_file):
+            block_file = 'robot_files/robotod/blocks/Explain_4.new'
+        lip_file = 'robot_files/robotod/blocks/explain_%d.csv' % closest_block_length
+    part['parameters'] = [block_file, audio_file, lip_file]
+    return part

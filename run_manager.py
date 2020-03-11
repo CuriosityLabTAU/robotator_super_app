@@ -14,10 +14,22 @@ import requests
 from read_lecture import *
 import sys
 from hebrew_tool import *
+from facilitation import *
+from datetime import datetime
 
 robot_path = '/home/nao/naoqi/sounds/HCI/'
-the_activity = 'roni_civic' #'hisotry_michal_by_goren' #'ai_lab'#'photosynthesis' #
+the_activity = 'test_debate' #'moran_programming' #roni_civic' #'hisotry_michal_by_goren' #'ai_lab'#
 robot = which_robot
+
+# TODO CHANGE GOREN adding generic screens to the tablet
+generic_lecture_uuid = u'd9603110-5f25-11ea-9cca-75737e6ac11c'
+generic_screens_uuid = {
+    'wait_for_explanation': u'eb14f7b0-5f25-11ea-9cca-75737e6ac11c'
+}
+# r = requests.post('http://localhost:8003/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
+#     'lectureUUID': generic_lecture_uuid,
+#     'sectionUUID': wait_for_explanation
+# })
 
 
 class ManagerNode():
@@ -53,16 +65,25 @@ class ManagerNode():
     tablets_mark = {}
     tablets_continue = {}
 
+    facilitation = Facilitation()
+
     def get_ok_devices(self):
         self.devices = []
         if is_database:
             # DEVICES
             print('----- devices -----')
             read_devices = requests.get('http://localhost:8003/apilocaladmin/api/v1/device/getAll').json()
+
             for d in read_devices:
+                # 2020-03-06T21:50:33.741Z
+                # device_update_time = datetime.strptime(d['updatedAt'][:-5], '%Y-%m-%dT%H:%M:%S')
+                # since_updated = (datetime.now() - device_update_time).seconds
+                # if since_updated > (60 * 10 + 2 * 60 * 60):  # due to GMT
+                #     continue
                 if len(d['user_name'].split(',')) == 2:         #DEBUG
                     if int(d['user_name'].split(',')[0]) >= 20: #DEBUG
                         self.devices.append(copy.copy(d))
+                        print(d['user_name'])
         else:
             self.devices = [{
                 'id': 1,
@@ -107,7 +128,7 @@ class ManagerNode():
         self.waiting_timer = False
         self.waiting_robot = False
 
-        self.session = {'name': 'Animals'}
+        self.session = {'name': the_activity}
         # {'name': 'HCI_1'}
 
         i=1
@@ -143,6 +164,7 @@ class ManagerNode():
         self.devices = []
         self.finished_register = False
 
+
         self.current_lecture = None
         self.current_section = None
         if is_database:
@@ -166,6 +188,8 @@ class ManagerNode():
                         self.conversion = None
                     self.first_section = json.loads(self.current_lecture['sectionsOrdering'])[0]
 
+        print('Manager: Finished initialization')
+        print(self.current_lecture)
         rospy.spin() #spin() simply keeps python from exiting until this node is stopped
 
     # TODO: check if needed
@@ -195,6 +219,7 @@ class ManagerNode():
     def run_generic_script(self):
         print("run_study with tablets: ", self.tablets_ids)
 
+
         data_file = open('flow_files/%s.json' % self.session['name'])
         study_sequence = json.load(data_file)
         # self.poses_conditions = logics_json['conditions']
@@ -213,6 +238,7 @@ class ManagerNode():
             'log': 'action',
             'data': action['tag']
         }))
+        self.current_section = action
         print(action['tag'], action)
         if action['target'] == 'tablet':
             if "tablets" in action:
@@ -299,12 +325,21 @@ class ManagerNode():
         return tablet_answers
 
     def tablet_actions(self, info):
+
+        self.facilitation.update_state(flow_=info)
         current_section = info['screen_name']
 
-        r = requests.post('http://localhost:8003/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
-            'lectureUUID': self.current_lecture['uuid'],
-            'sectionUUID': current_section
-        })
+        if 'generic' in current_section:    # get the screen from generic lecture
+            current_section = generic_screens_uuid[current_section[len('generic_'):]]
+            r = requests.post('http://localhost:8003/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
+                'lectureUUID': generic_lecture_uuid,
+                'sectionUUID': current_section
+            })
+        else:
+            r = requests.post('http://localhost:8003/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
+                'lectureUUID': self.current_lecture['uuid'],
+                'sectionUUID': current_section
+            })
 
         if info['response']:
             print('tablet_actions', 'response', info)
@@ -320,9 +355,16 @@ class ManagerNode():
                 for i_answer, answer in new_answers.items():
                     if current_answers[i_answer]['answered'] == 0 and new_answers[i_answer]['answered'] == 1:
                         # means that the tablet has answered
+                        # get the correctness of the answer
+                        correct = False
+                        if 'answers' in info:
+                            for a in info['answers']:
+                                if a['text'] == answer['answer']:
+                                    correct = a['truth']
                         done_message = {'action': 'participant_done',
                                         'client_ip': answer['device_id'],
-                                        'answer': answer['answer']
+                                        'answer': answer['answer'],
+                                        'correct': correct
                                         }
                         time.sleep(0.1)
                         self.participant_done(done_message)
@@ -503,6 +545,9 @@ class ManagerNode():
         if parameters['session']:
             self.session = parameters['session']
 
+        # update the facilitation manager
+        self.facilitation.add_user(subject_id_= parameters['group_id'])
+
         ### Not necessary here!!!
         # if is_robot:
         #     self.finished_register = False
@@ -562,6 +607,7 @@ class ManagerNode():
 
     def start(self):
         if self.current_lecture is None:
+            print('Manager: there is no current lecture!')
             return
         try:
             self.first_section = json.loads(self.current_lecture['sectionsOrdering'])[0]
@@ -631,10 +677,11 @@ class ManagerNode():
         print ("finish manager callback_to_manager")
 
     def participant_done(self, data_json):
-        print('participant_done', self.tablets_ids)
-        print(data_json)
         client_ip = int(data_json['client_ip'])
         device_id = client_ip
+
+        print('participant_done', self.tablets_ids)
+        print(data_json)
         self.count_done = 0
         self.tablets_done[device_id] = True
         self.tablets_mark[device_id] = data_json['answer']
@@ -651,16 +698,29 @@ class ManagerNode():
                 print("failed self.sleep_timer_cancel")
             self.count_done = 0
             self.tablets_done = {}
-            threading.Thread(target=self.run_study_action, args=[self.actions[self.robot_end_signal['done']]]).start()
-        print("audience_done")
+            # TODO CHANGE GOREN new facilitation
+            # threading.Thread(target=self.run_study_action, args=[self.actions[self.robot_end_signal['done']]]).start()
+            print("audience_done")
+
+        # TODO CHANGE GOREN new facilitation
+        actions = self.facilitation.update_state(answer_={
+            'subject_id': self.tablets[device_id]['subject_id'],
+            'answer': data_json['answer'],
+            'correct': data_json['correct']
+        })
+        if len(actions) > 0:
+            self.perform_actions(actions)
+
+
+
         # self.audience_done(data_json['parameters']['tablet_id'], data_json['parameters']['subject_id'],
         #                   data_json['client_ip'])
 
     def pos_to_tablet(self, speaker_info):
         # convert the position from the directional microphone, to tablet id, via the calibration file
         tablet_info = {}
-        # for id, info in speaker_info.items():
-        for info in speaker_info:
+        # for id, info in speaker_info.items(): # from
+        for info in speaker_info:   # from engage
             if info['pos'] > 0:
                 dist = 1000000
                 best_fit = None
@@ -676,7 +736,18 @@ class ManagerNode():
             # print("start manager callback_sensor", data.data)
             # parsing the message
             speakers = json.loads(data.data)
-            self.sensor_speak = self.pos_to_tablet(speakers)
+            self.sensor_speak = self.pos_to_tablet(speakers.values())
+
+            # TODO CHANGE GOREN
+            user_speakers = []
+            for p, c in self.sensor_speak.items():
+                for t in self.tablets.values():
+                    if p == t['tablet_pos']: # the speaker is from a specific tablet
+                        user_speakers.append({
+                            'subject_id': t['subject_id'],
+                            'count': c
+                        })
+            self.facilitation.update_state(speak_=user_speakers)
         except:
             print('ERROR in sensor:', data.data)
 
@@ -688,10 +759,15 @@ class ManagerNode():
             tablet_engage = self.pos_to_tablet([{'pos': pos_data, 'count': engage_data}])
             self.engagement[tablet_engage.keys()[0]] = tablet_engage.values()[0]
 
+            # TODO CHANGE GOREN
+            self.facilitation.update_state(engage_=tablet_engage)
+
     def callback_speak(self, data):
         subject_data = json.loads(str(data.data))
         self.current_speaker = self.pos_to_tablet([{'pos': subject_data['x'], 'count': 0}]).keys()[0]
         print('Got speaker data: current speaker', self.current_speaker)
+        # TODO CHANGE GOREN
+        self.facilitation.update_state()
 
     # TODO: probably don't need at all
     # def callback_log(self, data):
@@ -978,8 +1054,8 @@ class ManagerNode():
         else:
             self.robot_run_block({
                 'action': 'run_block',
-                'parameters': [#'robot_files/robotod/blocks/explain_5.new',
-                               'robot_files/robotod/blocks/address_pair_%s_%s.new' % (best_pair[0], best_pair[1]),
+                'parameters': ['robot_files/robotod/blocks/explain_5.new',
+                               #'robot_files/robotod/blocks/address_pair_%s_%s.new' % (best_pair[0], best_pair[1]),
                                audio_file, 'robot_files/robotod/blocks/explain_5.csv']
             })
 
@@ -993,6 +1069,84 @@ class ManagerNode():
 
         # sleep
         self.robot_sleep(action)
+
+    def perform_actions(self, actions):
+        print(actions)
+        current_tag = self.facilitation.state['flow']['tag']
+        prev_action = None
+        first_action = None
+        new_action = None
+        first_seq_action = None
+        prev_first_seq_action = None
+
+        for a in actions:
+            # for each action in actions, add to self.actions
+            # with updating the next of the previous
+
+            steps = a.split('|')
+            if 'say' in steps:
+                # only robot speaks
+                new_action = current_tag + '_' + steps[1]
+                first_seq_action = copy.copy(new_action)
+            elif 'next' in steps:
+                if 'done' in self.current_section:
+                    new_action = self.current_section['done']['done']
+                    first_seq_action = copy.copy(new_action)
+                else:
+                    new_action = self.current_section['next']
+                    first_seq_action = copy.copy(new_action)
+            elif 'debate' in steps:
+                if 'one' in steps:
+                    if 'least' in steps:
+                        if 'speak' in steps:
+                            user = self.facilitation.get_speaker('least')
+                            # TODO CHANGE GOREN
+                            # create
+                            #   a section with wait_for_debate (without do_debate)
+                            #   a section with explanation (with name)
+                            #   a section of sleep
+                            tablet_action = copy.copy(base_tablet_action)
+                            tablet_action['tag'] = current_tag + '_debate_tablet'
+                            tablet_action['next'] = current_tag + '_debate_explain'
+                            tablet_action['screen_name'] = 'generic_wait_for_explanation'
+                            tablet_action['answers'] = [{'text': 'done', 'truth': False}]
+                            tablet_action['activity'] = 'quiz'
+                            self.actions[tablet_action['tag']] = copy.copy(tablet_action)
+                            first_seq_action = copy.copy(tablet_action['tag'])
+
+                            explain_action = copy.copy(base_robot_animated_text)
+                            explain_action['tag'] = current_tag + '_debate_explain'
+                            explain_action['next'] = current_tag + '_debate_sleep'
+                            explain_action['parameters'] = find_appropriate_csv(
+                                'robot_files/robotod/blocks/speech_explain.mp3')
+                            self.actions[explain_action['tag']] = copy.copy(explain_action)
+
+                            sleep_action = copy.copy(base_robot_sleep)
+                            sleep_action['tag'] = current_tag + '_debate_sleep'
+                            sleep_action['seconds'] = 60
+                            self.actions[sleep_action['tag']] = copy.copy(sleep_action)
+
+                            new_action = sleep_action['tag']
+
+            if prev_action:
+                self.actions[prev_action]['next'] = new_action
+                if self.actions[prev_action]['action'] == 'sleep':
+                    self.actions[prev_action]['done'] = {
+                        'timeout': new_action,
+                        'done': new_action
+                    }
+
+                if not first_action:
+                    first_action = copy.copy(prev_first_seq_action)
+
+            if new_action:
+                prev_action = copy.copy(new_action)
+                prev_first_seq_action = copy.copy(first_seq_action)
+
+        # TODO CHANGE GOREN new facilitation
+        threading.Thread(target=self.run_study_action, args=[self.actions[first_action]]).start()
+
+
 
 
 

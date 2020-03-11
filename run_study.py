@@ -10,6 +10,8 @@ import requests
 
 lecture_number = 1
 the_activity = ''
+threads = []
+
 
 def intro(group_id=0, nao_ip='192.168.0.104'):
     start_working(group_id, nao_ip)
@@ -22,6 +24,8 @@ def start_working(group_id, nao_ip):
     def worker_tablet_coordinator_backend():
         print('starting the tablet coordinator backend...')
         os.system('./tablet_coordinator_backend.sh > /dev/null 2>&1')
+        threading._sleep(2.0)
+        requests.post('http://localhost:8003/apilocaladmin/api/v1/device/deleteAllDevice').json()
         return
 
     def worker_tablet_coordinator_frontend():
@@ -53,7 +57,8 @@ def start_working(group_id, nao_ip):
         os.system('rostopic pub -1 /patricc_activation_mode std_msgs/String "face_tracking|motion_control"')
 
     def worker_rosbag():
-        os.system('rosbag record -a -o data/robotator_' + str(group_id) + '.bag')
+        os.system('rosbag record -a -x \"(.*)image(.*)\" -o data/robotator_' + str(group_id) + '.bag')
+        # os.system('rosbag record -a -o data/robotator_' + str(group_id) + '.bag')
 
     def worker_manager():
         if the_activity == '':
@@ -65,14 +70,21 @@ def start_working(group_id, nao_ip):
         os.system('rostopic pub -1 /tablet_to_manager std_msgs/String "start the study"')
 
     def run_thread(worker):
-        threading.Thread(target=worker).start()
+        threads.append(threading.Thread(target=worker))
+        threads[-1].start()
         threading._sleep(2.0)
 
     def select_activity():
         lectures = requests.get('http://localhost:8003/apilocaladmin/api/v1/admin/lectures').json()
         print('These are the lectures in the database:')
         for i, lecture in enumerate(lectures):
-            print(i, lecture['name'])
+            print(i, lecture['name'], lecture['uuid'])
+            result = requests.put(
+                'http://localhost:8003/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid']).json()
+            if not result['active']:
+                requests.put(
+                    'http://localhost:8003/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid']).json()
+
         x = raw_input('Select lecture to run ...')
         x = int(x)
         return lectures[x]['name']
@@ -96,17 +108,22 @@ def start_working(group_id, nao_ip):
 
     the_activity = select_activity()
 
-    # run the manager
-    run_thread(worker_manager)
+    # run the manager11
+    # run_thread(worker_manager)
 
     # start recording
     run_thread((worker_rosbag))
 
+    # TODO get a message when manager is ready
     print('loading ...')
-    threading._sleep(5.0)
+    threading._sleep(10.0)
 
     run_thread(worker_start_study)
 
+    x = raw_input('Running. Press any key to stop.')
+    print(x)
+    for t in threads[::-1]:
+        t.join()
 
 if len(sys.argv) > 1:
     print('sys.argv', sys.argv)
