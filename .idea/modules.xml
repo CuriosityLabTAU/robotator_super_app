@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/robotator_super_app.iml" filepath="$PROJECT_DIR$/.idea/robotator_super_app.iml" />
+      <module fileurl="file://$USER_HOME$/PycharmProjects/social-aware-sensor-package/.idea/social-aware-sensor-package.iml" filepath="$USER_HOME$/PycharmProjects/social-aware-sensor-package/.idea/social-aware-sensor-package.iml" />
     </modules>
   </component>
 </project>

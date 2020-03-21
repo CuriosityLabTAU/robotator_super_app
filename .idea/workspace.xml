@@ -1,12 +1,576 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="ProjectFrameBounds" extendedState="6">
-    <option name="x" value="296" />
-    <option name="y" value="156" />
-    <option name="width" value="1393" />
-    <option name="height" value="792" />
+  <component name="ChangeListManager">
+    <list default="true" id="07c10dd5-e8aa-485c-b048-e3a72cb7fc02" name="Default Changelist" comment="added simple report">
+      <change beforePath="$USER_HOME$/PycharmProjects/social-aware-sensor-package/scripts/captured.png" beforeDir="false" afterPath="$USER_HOME$/PycharmProjects/social-aware-sensor-package/scripts/captured.png" afterDir="false" />
+      <change beforePath="$USER_HOME$/PycharmProjects/social-aware-sensor-package/scripts/fixed.png" beforeDir="false" afterPath="$USER_HOME$/PycharmProjects/social-aware-sensor-package/scripts/fixed.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/robotator_super_app.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/robotator_super_app.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/facilitation.py" beforeDir="false" afterPath="$PROJECT_DIR$/facilitation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/flow_files/test_debate.json" beforeDir="false" afterPath="$PROJECT_DIR$/flow_files/test_debate.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mp3_to_amplitude.py" beforeDir="false" afterPath="$PROJECT_DIR$/mp3_to_amplitude.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/read_lecture.py" beforeDir="false" afterPath="$PROJECT_DIR$/read_lecture.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/run_manager.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_manager.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/run_study.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_study.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/school_files/.~lock.student_names.csv#" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectId" id="ni6FHFgfZLbLQvf9oDtQ7PGYbk" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showExcludedFiles" value="true" />
+    <option name="showLibraryContents" value="true" />
   </component>
   <component name="PropertiesComponent">
+    <property name="ASKED_ADD_EXTERNAL_FILES" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/lecture_files/e48378e0-4c1f-11ea-a58d-bd536c9b6387" />
+    <property name="run.code.analysis.last.selected.profile" value="pProject Default" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/robot_files/robotod/blocks" />
+    </key>
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/lecture_files/e48378e0-4c1f-11ea-a58d-bd536c9b6387" />
+      <recent name="$PROJECT_DIR$/lecture_files/civic" />
+      <recent name="$PROJECT_DIR$" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Python.run_manager">
+    <configuration name="generate_report" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="robotator_super_app" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/generate_report.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="import_generic_speech" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="robotator_super_app" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/import_generic_speech.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="run_manager" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="robotator_super_app" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/run_manager.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="run_study" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <module name="robotator_super_app" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/run_study.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="testing_file" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="robotator_super_app" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/testing_file.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.run_study" />
+        <item itemvalue="Python.run_manager" />
+        <item itemvalue="Python.testing_file" />
+        <item itemvalue="Python.import_generic_speech" />
+        <item itemvalue="Python.generate_report" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="ServiceViewManager">
+    <option name="viewStates">
+      <list>
+        <serviceView>
+          <treeState>
+            <expand />
+            <select />
+          </treeState>
+        </serviceView>
+      </list>
+    </option>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="07c10dd5-e8aa-485c-b048-e3a72cb7fc02" name="Default Changelist" comment="" />
+      <created>1563737563544</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1563737563544</updated>
+    </task>
+    <task id="LOCAL-00001" summary="added nao files&#10;added run roscore">
+      <created>1563737991206</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1563737991207</updated>
+    </task>
+    <task id="LOCAL-00002" summary="configured to new database">
+      <created>1566903688989</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1566903688989</updated>
+    </task>
+    <task id="LOCAL-00003" summary="changed to generic english">
+      <created>1566915227988</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1566915227988</updated>
+    </task>
+    <task id="LOCAL-00004" summary="partly working&#10;user must be &gt;= 10 (DEBUG)">
+      <created>1567070711197</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1567070711197</updated>
+    </task>
+    <task id="LOCAL-00005" summary="partly working&#10;user must be &gt;= 10 (DEBUG)">
+      <created>1567070733319</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1567070733319</updated>
+    </task>
+    <task id="LOCAL-00006" summary="introducing robotod">
+      <created>1575933209436</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1575933209437</updated>
+    </task>
+    <task id="LOCAL-00007" summary="introducing robotod">
+      <created>1576090375637</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1576090375637</updated>
+    </task>
+    <task id="LOCAL-00008" summary="all sensors are working">
+      <created>1576102256965</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1576102256965</updated>
+    </task>
+    <task id="LOCAL-00009" summary="generating reports">
+      <created>1576104026144</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1576104026144</updated>
+    </task>
+    <task id="LOCAL-00010" summary="entire flow works. still need to check resolution.">
+      <created>1576283792183</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1576283792183</updated>
+    </task>
+    <task id="LOCAL-00011" summary="added explain behaviors and same-different answers. still missing pointing behaviors">
+      <created>1576448581303</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1576448581303</updated>
+    </task>
+    <task id="LOCAL-00012" summary="selects the correct pair to address">
+      <created>1576452071777</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1576452071777</updated>
+    </task>
+    <task id="LOCAL-00013" summary="full setup">
+      <created>1576521159021</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1576521159021</updated>
+    </task>
+    <task id="LOCAL-00014" summary="added simple report">
+      <created>1576523339787</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1576523339788</updated>
+    </task>
+    <task id="LOCAL-00015" summary="added instructions on how to import lecture files">
+      <created>1580066910454</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1580066910454</updated>
+    </task>
+    <task id="LOCAL-00016" summary="added import lecture script">
+      <created>1580070283369</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1580070283369</updated>
+    </task>
+    <task id="LOCAL-00017" summary="added simple report">
+      <created>1580070345153</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1580070345153</updated>
+    </task>
+    <task id="LOCAL-00018" summary="added simple report">
+      <created>1580070394869</created>
+      <option name="number" value="00018" />
+      <option name="presentableId" value="LOCAL-00018" />
+      <option name="project" value="LOCAL" />
+      <updated>1580070394869</updated>
+    </task>
+    <task id="LOCAL-00019" summary="integrated automatic lip sync to mp3">
+      <created>1580071225993</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1580071225993</updated>
+    </task>
+    <task id="LOCAL-00020" summary="combined with patricc controller to also have face tracking">
+      <created>1581448063781</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1581448063781</updated>
+    </task>
+    <task id="LOCAL-00021" summary="working with face tracking and lectures">
+      <created>1581460558238</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1581460558238</updated>
+    </task>
+    <task id="LOCAL-00022" summary="handle hebrew name of mp3 and csv files">
+      <created>1581547543512</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1581547543512</updated>
+    </task>
+    <task id="LOCAL-00023" summary="added feature of dodebate">
+      <created>1582130956961</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1582130956961</updated>
+    </task>
+    <task id="LOCAL-00024" summary="added many explains behavior">
+      <created>1582135231794</created>
+      <option name="number" value="00024" />
+      <option name="presentableId" value="LOCAL-00024" />
+      <option name="project" value="LOCAL" />
+      <updated>1582135231794</updated>
+    </task>
+    <task id="LOCAL-00025" summary="finished adding more explain">
+      <created>1582135556737</created>
+      <option name="number" value="00025" />
+      <option name="presentableId" value="LOCAL-00025" />
+      <option name="project" value="LOCAL" />
+      <updated>1582135556737</updated>
+    </task>
+    <task id="LOCAL-00026" summary="real commit&#10;also added student names">
+      <created>1582154699184</created>
+      <option name="number" value="00026" />
+      <option name="presentableId" value="LOCAL-00026" />
+      <option name="project" value="LOCAL" />
+      <updated>1582154699184</updated>
+    </task>
+    <task id="LOCAL-00027" summary="includes several activities">
+      <created>1583436366078</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1583436366078</updated>
+    </task>
+    <task id="LOCAL-00028" summary="major update">
+      <created>1583941471897</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1583941471897</updated>
+    </task>
+    <task id="LOCAL-00029" summary="enabled basic behaviors in facilitation">
+      <created>1583944128482</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1583944128482</updated>
+    </task>
+    <option name="localTasksCounter" value="30" />
+    <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="COLUMN_ORDER" />
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="added nao files&#10;added run roscore" />
+    <MESSAGE value="configured to new database" />
+    <MESSAGE value="changed to generic english" />
+    <MESSAGE value="partly working&#10;user must be &gt;= 10 (DEBUG)" />
+    <MESSAGE value="introducing robotod" />
+    <MESSAGE value="all sensors are working" />
+    <MESSAGE value="generating reports" />
+    <MESSAGE value="entire flow works. still need to check resolution." />
+    <MESSAGE value="added explain behaviors and same-different answers. still missing pointing behaviors" />
+    <MESSAGE value="selects the correct pair to address" />
+    <MESSAGE value="full setup" />
+    <MESSAGE value="added instructions on how to import lecture files" />
+    <MESSAGE value="added import lecture script" />
+    <MESSAGE value="added simple report" />
+    <MESSAGE value="integrated automatic lip sync to mp3" />
+    <MESSAGE value="combined with patricc controller to also have face tracking" />
+    <MESSAGE value="working with face tracking and lectures" />
+    <MESSAGE value="handle hebrew name of mp3 and csv files" />
+    <MESSAGE value="added feature of dodebate" />
+    <MESSAGE value="added many explains behavior" />
+    <MESSAGE value="finished adding more explain" />
+    <MESSAGE value="real commit&#10;also added student names" />
+    <MESSAGE value="includes several activities" />
+    <MESSAGE value="major update" />
+    <MESSAGE value="enabled basic behaviors in facilitation" />
+    <option name="LAST_COMMIT_MESSAGE" value="enabled basic behaviors in facilitation" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="654" y="343" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1581458604986">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="654" y="343" key="#com.intellij.fileTypes.FileTypeChooser/65.24.1855.1056@65.24.1855.1056" timestamp="1581458604986" />
+    <state x="864" y="241" key="#xdebugger.evaluate" timestamp="1576103382639">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="864" y="241" key="#xdebugger.evaluate/65.24.1855.1056@65.24.1855.1056" timestamp="1576103382639" />
+    <state x="732" y="394" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1" timestamp="1576276459039">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="732" y="394" key="ANALYSIS_DLG_com.intellij.analysis.BaseAnalysisAction$1/65.24.1855.1056@65.24.1855.1056" timestamp="1576276459039" />
+    <state x="603" y="125" width="1855" height="1084" key="CommitChangelistDialog2" timestamp="1584834795051">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="603" y="125" width="779" height="807" key="CommitChangelistDialog2/65.24.1855.1056@65.24.1855.1056" timestamp="1584834795051" />
+    <state x="67" y="-4" width="1855" height="1084" key="CommitChangelistDialog2/65.24.1857.2136@65.24.1857.2136" timestamp="1583944128251" />
+    <state width="1758" height="568" key="DebuggerActiveHint" timestamp="1583542517967">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state width="1758" height="568" key="DebuggerActiveHint/65.24.1855.1056@65.24.1855.1056" timestamp="1583542517967" />
+    <state x="779" y="296" key="FileChooserDialogImpl" timestamp="1582205756071">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="779" y="296" key="FileChooserDialogImpl/65.24.1855.1056@65.24.1855.1056" timestamp="1582205756071" />
+    <state width="1830" height="330" key="GridCell.Tab.0.bottom" timestamp="1584834730782">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state width="1830" height="330" key="GridCell.Tab.0.bottom/65.24.1855.1056@65.24.1855.1056" timestamp="1584834730782" />
+    <state width="1830" height="330" key="GridCell.Tab.0.bottom/65.24.1857.2136@65.24.1857.2136" timestamp="1583949067967" />
+    <state width="1830" height="330" key="GridCell.Tab.0.center" timestamp="1584834730781">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state width="1830" height="330" key="GridCell.Tab.0.center/65.24.1855.1056@65.24.1855.1056" timestamp="1584834730781" />
+    <state width="1830" height="330" key="GridCell.Tab.0.center/65.24.1857.2136@65.24.1857.2136" timestamp="1583949067964" />
+    <state width="1830" height="330" key="GridCell.Tab.0.left" timestamp="1584834730781">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state width="1830" height="330" key="GridCell.Tab.0.left/65.24.1855.1056@65.24.1855.1056" timestamp="1584834730781" />
+    <state width="1830" height="330" key="GridCell.Tab.0.left/65.24.1857.2136@65.24.1857.2136" timestamp="1583949067963" />
+    <state width="1830" height="330" key="GridCell.Tab.0.right" timestamp="1584834730781">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state width="1830" height="330" key="GridCell.Tab.0.right/65.24.1855.1056@65.24.1855.1056" timestamp="1584834730781" />
+    <state width="1830" height="330" key="GridCell.Tab.0.right/65.24.1857.2136@65.24.1857.2136" timestamp="1583949067965" />
+    <state width="1830" height="364" key="GridCell.Tab.1.bottom" timestamp="1584830968213">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state width="1830" height="364" key="GridCell.Tab.1.bottom/65.24.1855.1056@65.24.1855.1056" timestamp="1584830968213" />
+    <state width="1830" height="364" key="GridCell.Tab.1.bottom/65.24.1857.2136@65.24.1857.2136" timestamp="1583948696197" />
+    <state width="1830" height="364" key="GridCell.Tab.1.center" timestamp="1584830968213">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state width="1830" height="364" key="GridCell.Tab.1.center/65.24.1855.1056@65.24.1855.1056" timestamp="1584830968213" />
+    <state width="1830" height="364" key="GridCell.Tab.1.center/65.24.1857.2136@65.24.1857.2136" timestamp="1583948696196" />
+    <state width="1830" height="364" key="GridCell.Tab.1.left" timestamp="1584830968212">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state width="1830" height="364" key="GridCell.Tab.1.left/65.24.1855.1056@65.24.1855.1056" timestamp="1584830968212" />
+    <state width="1830" height="364" key="GridCell.Tab.1.left/65.24.1857.2136@65.24.1857.2136" timestamp="1583948696196" />
+    <state width="1830" height="364" key="GridCell.Tab.1.right" timestamp="1584830968213">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state width="1830" height="364" key="GridCell.Tab.1.right/65.24.1855.1056@65.24.1855.1056" timestamp="1584830968213" />
+    <state width="1830" height="364" key="GridCell.Tab.1.right/65.24.1857.2136@65.24.1857.2136" timestamp="1583948696197" />
+    <state x="485" y="174" key="SettingsEditor" timestamp="1580070841681">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="485" y="174" key="SettingsEditor/65.24.1855.1056@65.24.1855.1056" timestamp="1580070841681" />
+    <state x="591" y="274" key="Vcs.Push.Dialog.v2" timestamp="1584834796636">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="591" y="274" key="Vcs.Push.Dialog.v2/65.24.1855.1056@65.24.1855.1056" timestamp="1584834796636" />
+    <state x="592" y="530" key="Vcs.Push.Dialog.v2/65.24.1857.2136@65.24.1857.2136" timestamp="1583944129742" />
+    <state width="927" height="542" key="XDebugger.FullValuePopup" timestamp="1583534007629">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state width="927" height="542" key="XDebugger.FullValuePopup/65.24.1855.1056@65.24.1855.1056" timestamp="1583534007629" />
+    <state x="165" y="96" width="1655" height="884" key="com.intellij.history.integration.ui.views.FileHistoryDialog" timestamp="1576091996982">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="165" y="96" width="1655" height="884" key="com.intellij.history.integration.ui.views.FileHistoryDialog/65.24.1855.1056@65.24.1855.1056" timestamp="1576091996982" />
+    <state x="546" y="277" key="com.intellij.xdebugger.impl.breakpoints.ui.BreakpointsDialogFactory$2" timestamp="1584827591835">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="546" y="277" key="com.intellij.xdebugger.impl.breakpoints.ui.BreakpointsDialogFactory$2/65.24.1855.1056@65.24.1855.1056" timestamp="1584827591835" />
+    <state x="547" y="484" key="com.intellij.xdebugger.impl.breakpoints.ui.BreakpointsDialogFactory$2/65.24.1857.2136@65.24.1857.2136" timestamp="1583941719813" />
+    <state x="623" y="371" width="1178" height="709" key="find.popup" timestamp="1584831702365">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="623" y="371" width="1178" height="709" key="find.popup/65.24.1855.1056@65.24.1855.1056" timestamp="1584831702365" />
+    <state x="640" y="1104" width="708" height="1056" key="find.popup/65.24.1857.2136@65.24.1857.2136" timestamp="1583943523208" />
+    <state x="655" y="236" width="672" height="678" key="search.everywhere.popup" timestamp="1576274603261">
+      <screen x="65" y="24" width="1855" height="1056" />
+    </state>
+    <state x="655" y="236" width="672" height="678" key="search.everywhere.popup/65.24.1855.1056@65.24.1855.1056" timestamp="1576274603261" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/temp_stitch_blocks.py</url>
+          <line>74</line>
+          <option name="timeStamp" value="15" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/testing_file.py</url>
+          <line>52</line>
+          <option name="timeStamp" value="60" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/facilitation.py</url>
+          <line>105</line>
+          <option name="timeStamp" value="69" />
+        </line-breakpoint>
+      </breakpoints>
+      <default-breakpoints>
+        <breakpoint type="python-exception">
+          <properties notifyOnTerminate="true" exception="BaseException">
+            <option name="notifyOnTerminate" value="true" />
+          </properties>
+        </breakpoint>
+      </default-breakpoints>
+    </breakpoint-manager>
+    <watches-manager>
+      <configuration name="PythonConfigurationType">
+        <watch expression="self.devices" language="Python" />
+      </configuration>
+    </watches-manager>
   </component>
 </project>
