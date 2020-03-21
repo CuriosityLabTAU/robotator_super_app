@@ -75,7 +75,6 @@ def path_to_lip_csv(the_path):
     mp3_files = [f for f in listdir(the_path) if '.mp3' in f]
 
     for m in mp3_files:
-        print(m)
         mp3_to_lip_csv(the_path, m)
 
 # path_to_lip_csv('/home/curious/PycharmProjects/run_general_robot_script/roboroots/01_fuzzy/sounds/')

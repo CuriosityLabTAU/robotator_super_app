@@ -76,10 +76,10 @@ class ManagerNode():
 
             for d in read_devices:
                 # 2020-03-06T21:50:33.741Z
-                # device_update_time = datetime.strptime(d['updatedAt'][:-5], '%Y-%m-%dT%H:%M:%S')
-                # since_updated = (datetime.now() - device_update_time).seconds
-                # if since_updated > (60 * 10 + 2 * 60 * 60):  # due to GMT
-                #     continue
+                device_update_time = datetime.strptime(d['updatedAt'][:-5], '%Y-%m-%dT%H:%M:%S')
+                since_updated = (datetime.now() - device_update_time).seconds
+                if since_updated > (60 * 10 + 2 * 60 * 60):  # due to GMT
+                    continue
                 if len(d['user_name'].split(',')) == 2:         #DEBUG
                     if int(d['user_name'].split(',')[0]) >= 20: #DEBUG
                         self.devices.append(copy.copy(d))
@@ -219,7 +219,6 @@ class ManagerNode():
     def run_generic_script(self):
         print("run_study with tablets: ", self.tablets_ids)
 
-
         data_file = open('flow_files/%s.json' % self.session['name'])
         study_sequence = json.load(data_file)
         # self.poses_conditions = logics_json['conditions']
@@ -228,7 +227,7 @@ class ManagerNode():
 
         for seq in study_sequence:
             if 'tablets' in seq:
-                seq['tablets'] = [i+1 for i in range(self.number_of_tablets)]
+                seq['tablets'] = [d['user_name'].split(',')[0] for d in self.devices]
             self.actions[seq['tag']] = copy.copy(seq)
 
         self.run_study_action(self.actions['start'])
@@ -340,6 +339,19 @@ class ManagerNode():
                 'lectureUUID': self.current_lecture['uuid'],
                 'sectionUUID': current_section
             })
+
+        self.number_of_tablets_done = 0
+
+        for d in self.devices:
+            if d['user_name'].split(',')[0] in info['tablets']:
+                requests.post('http://localhost:8003/apilocaladmin/api/v1/admin/defreezeDevice', data={
+                                  'id': d['id']
+                })
+                self.number_of_tablets_done += 1
+            else:
+                requests.post('http://localhost:8003/apilocaladmin/api/v1/admin/freezeDevice', data={
+                    'id': d['id']
+                })
 
         if info['response']:
             print('tablet_actions', 'response', info)
@@ -621,18 +633,22 @@ class ManagerNode():
         self.number_of_tablets_done = self.number_of_tablets
         print(self.devices)
 
+        device_id_array = [d['device_crypt_id'] for d in self.devices]
+        print(device_id_array)
+
         # set the first section to be the first section
         r = requests.post('http://localhost:8003/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
             'lectureUUID': self.current_lecture['uuid'],
             'sectionUUID': self.first_section
         })
-        print('tablet_node', 'switch to first section', r, r.text)
+        print('Tablets:', 'switch to first section', r, r.text)
 
         # register all tablets
         for d in self.devices:
             try:
                 print(d)
                 d_info = d['user_name'].split(',')
+                print(d_info)
                 print(d_info)
                 group_id = d_info[0]
                 tablet_id = d_info[1]
@@ -697,22 +713,24 @@ class ManagerNode():
                 print("failed self.sleep_timer_cancel")
             self.count_done = 0
             self.tablets_done = {}
-            # TODO CHANGE GOREN new facilitation
-            # threading.Thread(target=self.run_study_action, args=[self.actions[self.robot_end_signal['done']]]).start()
             print("audience_done")
             if data_json['internal']:   # meaning its an internal screen, not part of the activity
                 threading.Thread(target=self.run_study_action,
-                                 args=[self.actions[self.robot_end_signal['done']]]).start()
+                                 args = [self.actions[self.current_section['done']['done']]]).start()
+                                 #args=[self.actions[self.robot_end_signal['done']]]).start()
                 return
+            # TODO CHANGE GOREN new facilitation
+            # threading.Thread(target=self.run_study_action, args=[self.actions[self.robot_end_signal['done']]]).start()
 
-        # TODO CHANGE GOREN new facilitation
-        actions = self.facilitation.update_state(answer_={
-            'subject_id': self.tablets[device_id]['subject_id'],
-            'answer': data_json['answer'],
-            'correct': data_json['correct']
-        })
-        if len(actions) > 0:
-            self.perform_actions(actions)
+        if not data_json['internal']:
+            # TODO CHANGE GOREN new facilitation
+            actions = self.facilitation.update_state(answer_={
+                'subject_id': self.tablets[device_id]['subject_id'],
+                'answer': data_json['answer'],
+                'correct': data_json['correct']
+            })
+            if len(actions) > 0:
+                self.perform_actions(actions)
 
 
 
@@ -951,7 +969,6 @@ class ManagerNode():
             'robot_files/robotod/blocks/hello.mp3'
         ]})
 
-
         users = [x['user_name'].split(',')[0] for x in self.devices]
         print(users)
         for u in users:
@@ -1098,7 +1115,7 @@ class ManagerNode():
                 else:
                     new_action = self.current_section['next']
                     first_seq_action = copy.copy(new_action)
-            elif 'debate' in steps:
+            elif 'debate' in steps and self.facilitation.state['flow']['doDebate']:
                 if 'one' in steps:
                     if 'least' in steps:
                         if 'speak' in steps:
@@ -1117,6 +1134,7 @@ class ManagerNode():
                             tablet_action['response'] = True
                             tablet_action['duration'] = 60 # Base explanation time
                             tablet_action['internal'] = True
+                            tablet_action['tablets'] = user
                             self.actions[tablet_action['tag']] = copy.copy(tablet_action)
                             first_seq_action = copy.copy(tablet_action['tag'])
 
@@ -1158,9 +1176,6 @@ class ManagerNode():
 
         # TODO CHANGE GOREN new facilitation
         threading.Thread(target=self.run_study_action, args=[self.actions[first_action]]).start()
-
-
-
 
 
 if __name__ == '__main__':

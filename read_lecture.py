@@ -54,6 +54,7 @@ base_tablet_action = {
     'activity_type': 'activity_type',
     'duration': 0,
     'response': 0,
+    'doDebate': False,
     'tablets': [1,2,3,4,5],
     'next': 'next'
 }
@@ -236,67 +237,67 @@ def convert_lecture_to_flow_nao(lecture, the_lecture_hash=None):
         elif section['key'] in ['quiz', 'imageQuestion']:
             student_respond = True
 
-        if student_respond:
-            part['next'] = 'section_%s_robot_sleep' % section['name']
-            parts.append(copy.copy(part))
-
-            after_response = 'section_%s_robot_resolution' % section['name']
-            if 'text' in section['key']:
-                after_response = the_next_part
-
-            part = copy.copy(base_robot_sleep)
-            part['tag'] = parts[-1]['next']
-            if 'timeLimit' in value:
-                if int(value['timeLimit']) <= 30: # too short for a reminder
-                    part['seconds'] = int(value['timeLimit'])
-                    part['done'] = {
-                        'timeout': after_response,
-                        'done': after_response
-                    }
-                    part['next'] = part['tag']
-                    parts.append(copy.copy(part))
-                else:
-                    # introduce a reminder
-                    part['seconds'] = int(value['timeLimit']) - 30
-                    part['done'] = {
-                        'timeout': 'robot_30sec_%s' % part['tag'],
-                        'done': after_response
-                    }
-                    part['next'] = part['tag']
-                    parts.append(copy.copy(part))
-
-                    # reminder
-                    # English
-                    part = copy.copy(base_robot_animated_text)
-                    part['parameters'] = ['You have only 30 seconds left.']
-                    # # Recordings
-                    # part = copy.copy(base_robot_action)
-                    # part['parameters'] = ['30_seconds_left']
-
-                    part['tag'] = parts[-1]['done']['timeout']
-                    part['next'] = 'section_%s_robot_sleep_30' % section['name']
-                    parts.append(copy.copy(part))
-
-                    # final 30 seconds
-                    part = copy.copy(base_robot_sleep)
-                    part['tag'] = 'section_%s_robot_sleep_30' % section['name']
-                    part['seconds'] = 30
-                    part['done'] = {
-                        'timeout': after_response,
-                        'done': after_response
-                    }
-                    part['next'] = after_response
-                    parts.append(copy.copy(part))
-            else:
-                part['second'] = -1 # TODO: check
-
-            # robot resolution (given answers and speakers)
-            part = copy.copy(base_robot_resolution)
-            part['tag'] = 'section_%s_robot_resolution' % section['name']
-            part['done'] = {
-                'timeout': the_next_part,
-                'done': the_next_part
-            }
+        # if student_respond:
+        #     part['next'] = 'section_%s_robot_sleep' % section['name']
+        #     parts.append(copy.copy(part))
+        #
+        #     after_response = 'section_%s_robot_resolution' % section['name']
+        #     if 'text' in section['key']:
+        #         after_response = the_next_part
+        #
+        #     part = copy.copy(base_robot_sleep)
+        #     part['tag'] = parts[-1]['next']
+        #     if 'timeLimit' in value:
+        #         if int(value['timeLimit']) <= 30: # too short for a reminder
+        #             part['seconds'] = int(value['timeLimit'])
+        #             part['done'] = {
+        #                 'timeout': after_response,
+        #                 'done': after_response
+        #             }
+        #             part['next'] = part['tag']
+        #             parts.append(copy.copy(part))
+        #         else:
+        #             # introduce a reminder
+        #             part['seconds'] = int(value['timeLimit']) - 30
+        #             part['done'] = {
+        #                 'timeout': 'robot_30sec_%s' % part['tag'],
+        #                 'done': after_response
+        #             }
+        #             part['next'] = part['tag']
+        #             parts.append(copy.copy(part))
+        #
+        #             # reminder
+        #             # English
+        #             part = copy.copy(base_robot_animated_text)
+        #             part['parameters'] = ['You have only 30 seconds left.']
+        #             # # Recordings
+        #             # part = copy.copy(base_robot_action)
+        #             # part['parameters'] = ['30_seconds_left']
+        #
+        #             part['tag'] = parts[-1]['done']['timeout']
+        #             part['next'] = 'section_%s_robot_sleep_30' % section['name']
+        #             parts.append(copy.copy(part))
+        #
+        #             # final 30 seconds
+        #             part = copy.copy(base_robot_sleep)
+        #             part['tag'] = 'section_%s_robot_sleep_30' % section['name']
+        #             part['seconds'] = 30
+        #             part['done'] = {
+        #                 'timeout': after_response,
+        #                 'done': after_response
+        #             }
+        #             part['next'] = after_response
+        #             parts.append(copy.copy(part))
+        #     else:
+        #         part['second'] = -1 # TODO: check
+        #
+        #     # robot resolution (given answers and speakers)
+        #     part = copy.copy(base_robot_resolution)
+        #     part['tag'] = 'section_%s_robot_resolution' % section['name']
+        #     part['done'] = {
+        #         'timeout': the_next_part,
+        #         'done': the_next_part
+        #     }
         part['next'] = the_next_part
         parts.append(copy.copy(part))
 
@@ -391,10 +392,7 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
 
     ]
 
-    print(lecture)
-    print(lecture['sectionsOrdering'])
     for s, section in enumerate(ordered_sections):
-        print(section['uuid'])
         # Every section is composed of:
         # - a new tablet screen
         # - robot says something
@@ -406,6 +404,7 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
         # show screen is always
         part = copy.copy(base_tablet_action)
         part['tag'] = 'section_%s_show_screen' % section['name']
+        part['doDebate'] = value['doDebate']
         part['screen_name'] = section['uuid']
         if 'questionType' in value:
             part['activity_type'] = value['questionType']
@@ -488,7 +487,7 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
 
             # After response:
             #  if 'text', there there are no right/wrong/same/different answers
-            resolution = True
+            resolution = False
             if 'text' in section['key']:
                 resolution = False
             # if dodebate = False, move on
@@ -561,7 +560,6 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
         parts.append(copy.copy(part))
 
         for p in parts:
-            print_part(p)
             study_flow.append(p)
 
         json.dump(study_flow, open('flow_files/%s.json' % lecture['name'], 'w+'))

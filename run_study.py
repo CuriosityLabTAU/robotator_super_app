@@ -119,7 +119,7 @@ def start_working(group_id, nao_ip):
 
     # TODO get a message when manager is ready
     print('loading ...')
-    threading._sleep(10.0)
+    threading._sleep(5.0)
 
     run_thread(worker_start_study)
 

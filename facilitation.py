@@ -42,6 +42,24 @@ class Facilitation:
                 'trigger': 'all|correct|False',
                 'action': 'debate|one|speak|least|explain>say|correct>next',
                 'priority': 10  # between 0-10
+            },
+            {
+                'name': 'if some gave wrong answers, ask someone to explain, say correct answer and move on',
+                'trigger': 'some|correct|False',
+                'action': 'debate|one|speak|least|explain>say|correct>next',
+                'priority': 9  # between 0-10
+            },
+            {
+                'name': 'default for no debate',
+                'trigger': 'some|correct|False',
+                'action': 'say|correct>next',
+                'priority': 0  # between 0-10
+            },
+            {
+                'name': 'default for no debate',
+                'trigger': 'some|correct|True',
+                'action': 'say|correct>next',
+                'priority': 1  # between 0-10
             }
 
         ]
@@ -60,8 +78,9 @@ class Facilitation:
 
         if flow_:
             self.state['flow'] = flow_
-            self.state['correct'] = {}
-            self.state['answers'] = {}
+            for u in self.users:
+                self.state['correct'][u] = None
+                self.state['answers'][u] = None
 
         if answer_:
             self.users[answer_['subject_id']]['answers'].append(answer_['answer'])
@@ -109,6 +128,21 @@ class Facilitation:
                             active = active and c
                         elif t[-1] == 'False':
                             active = active and not c
+        elif 'some' in t:
+            # default is not to activate, only if someone does not meet the condition, change to False
+            active = False
+            if 'correct' in t:
+                if len(self.state['flow']['answers']) > 1:
+                    # look in correct
+                    for s, c in self.state['correct'].items():
+                        if c is None:
+                            # missing a user, not all gave answers
+                            active = False
+                            break
+                        if t[-1] == 'True' and c:
+                            active = True
+                        elif t[-1] == 'False' and not c:
+                            active = True
         return active
 
     def get_speaker(self, speaker_type):
