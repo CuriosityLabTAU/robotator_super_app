@@ -50,6 +50,10 @@ def start_working(group_id, nao_ip):
 
     def worker_sensors():
         print('starting sensors...')
+        if is_camera:
+            os.system('echo camera > /home/curious/PycharmProjects/patricc_controller/sensor_type.txt')
+        else:
+            os.system('echo zoom > /home/curious/PycharmProjects/patricc_controller/sensor_type.txt')
         os.system('./run_sensors.sh') # > /dev/null 2>&1')
         return
 
@@ -75,25 +79,25 @@ def start_working(group_id, nao_ip):
         threading._sleep(2.0)
 
     def select_activity():
-        lectures = requests.get('http://localhost:8003/apilocaladmin/api/v1/admin/lectures').json()
+        lectures = requests.get('http://%s/apilocaladmin/api/v1/admin/lectures' % ip_coordinator).json()
         print('These are the lectures in the database:')
         for i, lecture in enumerate(lectures):
             print(i, lecture['name'], lecture['uuid'])
             result = requests.put(
-                'http://localhost:8003/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid']).json()
+                'http://%s/apilocaladmin/api/v1/admin/lectures/%s/active' % (ip_coordinator, lecture['uuid'])).json()
             if result['active']:
                 requests.put(
-                    'http://localhost:8003/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid']).json()
+                    'http://%s/apilocaladmin/api/v1/admin/lectures/%s/active' % (ip_coordinator, lecture['uuid'])).json()
 
         x = raw_input('Select lecture to run ...')
         x = int(x)
         requests.put(
-            'http://localhost:8003/apilocaladmin/api/v1/admin/lectures/%s/active' % lectures[x]['uuid']).json()
+            'http://%s/apilocaladmin/api/v1/admin/lectures/%s/active' % (ip_coordinator, lectures[x]['uuid'])).json()
         raw_input('press any key to start ...')
         return lectures[x]['name']
 
     # first, run the tablet coordinator, backend and then frontend
-    if is_database:
+    if is_local and is_database:
         run_thread(worker_tablet_coordinator_backend)
         run_thread(worker_tablet_coordinator_frontend)
 

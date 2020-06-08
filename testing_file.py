@@ -4,6 +4,7 @@ import rospy
 from std_msgs.msg import String
 import json
 
+
 # nao_ip = '192.168.0.101'
 #
 # def worker1():
@@ -46,8 +47,40 @@ import json
 #
 # tn = TestNode()
 
+server_url = '3.14.152.95:8003'
+
 import requests
-generic_lecture_uuid = u'd9603110-5f25-11ea-9cca-75737e6ac11c'
-result = requests.put('http://localhost:8003/apilocaladmin/api/v1/admin/lectures/%s/active' % generic_lecture_uuid).json()
-print(result)
-print('done!')
+# generic_lecture_uuid = u'd9603110-5f25-11ea-9cca-75737e6ac11c'
+# result = requests.put('http://localhost:8003/apilocaladmin/api/v1/admin/lectures/%s/active' % generic_lecture_uuid).json()
+# print(result)
+# print('done!')
+# read_devices = requests.get('http://18.224.140.36:8003/apilocaladmin/api/v1/device/getAll').json()
+# read_devices = requests.get('http://ip-172-31-27-23:8003/apilocaladmin/api/v1/device/getAll').json()
+read_devices = requests.get('http://%s/apilocaladmin/api/v1/device/getAll' % server_url).json()
+# read_devices = requests.get('http://3.14.152.95:8001/apilocaladmin').json()
+x = requests.get('http://%s/apilocaladmin/api/v1/admin/lectures' % server_url).json()
+print(x)
+
+
+def select_activity():
+    lectures = requests.get('http://%s/apilocaladmin/api/v1/admin/lectures' % server_url).json()
+    print('These are the lectures in the database:')
+    for i, lecture in enumerate(lectures):
+        print(i, lecture['name'], lecture['uuid'])
+        result = requests.put(
+            'http://%s/apilocaladmin/api/v1/admin/lectures/%s/active' % (server_url, lecture['uuid'])).json()
+        if result['active']:
+            requests.put(
+                'http://%s/apilocaladmin/api/v1/admin/lectures/%s/active' % (server_url, lecture['uuid'])).json()
+
+    x = raw_input('Select lecture to run ...')
+    x = int(x)
+    requests.put(
+        'http://%s/apilocaladmin/api/v1/admin/lectures/%s/active' % (server_url, lectures[x]['uuid'])).json()
+    raw_input('press any key to start ...')
+
+# select_activity()
+
+from run_condition import *
+read_devices = requests.get('http://%s/apilocaladmin/api/v1/device/getAll' % ip_coordinator).json()
+print(read_devices)

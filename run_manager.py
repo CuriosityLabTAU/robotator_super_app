@@ -72,13 +72,13 @@ class ManagerNode():
         if is_database:
             # DEVICES
             print('----- devices -----')
-            read_devices = requests.get('http://localhost:8003/apilocaladmin/api/v1/device/getAll').json()
+            read_devices = requests.get('http://%s/apilocaladmin/api/v1/device/getAll' % ip_coordinator).json()
 
             for d in read_devices:
                 # 2020-03-06T21:50:33.741Z
                 device_update_time = datetime.strptime(d['updatedAt'][:-5], '%Y-%m-%dT%H:%M:%S')
                 since_updated = (datetime.now() - device_update_time).seconds
-                if since_updated > (60 * 10 + 2 * 60 * 60):  # due to GMT
+                if since_updated > (60 * 10 + 3 * 60 * 60):  # due to GMT
                     continue
                 if len(d['user_name'].split(',')) == 2:         #DEBUG
                     if int(d['user_name'].split(',')[0]) >= 20: #DEBUG
@@ -164,16 +164,15 @@ class ManagerNode():
         self.devices = []
         self.finished_register = False
 
-
         self.current_lecture = None
         self.current_section = None
         if is_database:
             # LECTURES
-            self.lectures = requests.get('http://localhost:8003/apilocaladmin/api/v1/admin/lectures').json()
+            self.lectures = requests.get('http://%s/apilocaladmin/api/v1/admin/lectures' % ip_coordinator).json()
             for lecture in self.lectures:
-                active_lecture = 'http://localhost:8003/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid']
+                active_lecture = 'http://%s/apilocaladmin/api/v1/admin/lectures/%s/active' % (ip_coordinator, lecture['uuid'])
                 # print(active_lecture)
-                res = requests.put('http://localhost:8003/apilocaladmin/api/v1/admin/lectures/%s/active' % lecture['uuid'])
+                res = requests.put('http://%s/apilocaladmin/api/v1/admin/lectures/%s/active' % (ip_coordinator, lecture['uuid']))
                 # print(lecture['name'], res)
                 if the_activity in lecture['name']:
                     if self.ROBOT == 'nao':
@@ -315,8 +314,8 @@ class ManagerNode():
                 self.init_facilitation(action)
 
     def get_current_answers(self, a_section):
-        all_answers = requests.get('http://localhost:8003/apilocaladmin/api/v1/lecture/%s/answers' %
-                                   self.current_lecture['uuid']).json()
+        all_answers = requests.get('http://%s/apilocaladmin/api/v1/lecture/%s/answers' %
+                                   (ip_coordinator, self.current_lecture['uuid'])).json()
         current_answers = [a['answers'] for a in all_answers if a['uuid'] == a_section][0]
         tablet_answers = {}
         for ca in current_answers:
@@ -330,12 +329,12 @@ class ManagerNode():
 
         if 'generic' in current_section:    # get the screen from generic lecture
             current_section = generic_screens_uuid[current_section[len('generic_'):]]
-            r = requests.post('http://localhost:8003/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
+            r = requests.post('http://%s/apilocaladmin/api/v1/admin/lectureSwitchSection' % ip_coordinator, data={
                 'lectureUUID': generic_lecture_uuid,
                 'sectionUUID': current_section
             })
         else:
-            r = requests.post('http://localhost:8003/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
+            r = requests.post('http://%s/apilocaladmin/api/v1/admin/lectureSwitchSection' % ip_coordinator, data={
                 'lectureUUID': self.current_lecture['uuid'],
                 'sectionUUID': current_section
             })
@@ -344,12 +343,12 @@ class ManagerNode():
 
         for d in self.devices:
             if d['user_name'].split(',')[0] in info['tablets']:
-                requests.post('http://localhost:8003/apilocaladmin/api/v1/admin/defreezeDevice', data={
+                requests.post('http://%s/apilocaladmin/api/v1/admin/defreezeDevice' % ip_coordinator, data={
                                   'id': d['id']
                 })
                 self.number_of_tablets_done += 1
             else:
-                requests.post('http://localhost:8003/apilocaladmin/api/v1/admin/freezeDevice', data={
+                requests.post('http://%s/apilocaladmin/api/v1/admin/freezeDevice' % ip_coordinator, data={
                     'id': d['id']
                 })
 
@@ -637,7 +636,7 @@ class ManagerNode():
         print(device_id_array)
 
         # set the first section to be the first section
-        r = requests.post('http://localhost:8003/apilocaladmin/api/v1/admin/lectureSwitchSection', data={
+        r = requests.post('http://%s/apilocaladmin/api/v1/admin/lectureSwitchSection' % ip_coordinator, data={
             'lectureUUID': self.current_lecture['uuid'],
             'sectionUUID': self.first_section
         })

@@ -404,7 +404,10 @@ def convert_lecture_to_flow_robotod(lecture, the_lecture_hash=None):
         # show screen is always
         part = copy.copy(base_tablet_action)
         part['tag'] = 'section_%s_show_screen' % section['name']
-        part['doDebate'] = value['doDebate']
+        try:    # backward compatibility
+            part['doDebate'] = value['doDebate']
+        except:
+            part['doDebate'] = True
         part['screen_name'] = section['uuid']
         if 'questionType' in value:
             part['activity_type'] = value['questionType']
